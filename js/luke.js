@@ -8,28 +8,38 @@ $(document).ready(function () {
         loadStaffList();
     });
 
+    // init popover
+    $("#staff_attr_save_btn").popover({
+        content: "请先在左侧团员列表选中其一",
+        placement: "top",
+        trigger: "manual"
+    }).click(saveStaff).blur(function () {
+        $(this).popover('hide');
+    });
+
+    $("#staff_list_add_btn").click(addStaff);
+
     // bind event
     $("#staff_list").children("div").on("click", "button", function (e) {
         readStaffAttributes(e, $(this).index());
     });
 
     // modal
-    $('#modal_add_name').on('show.bs.modal', function (e) {
+    $('#modal_add_name').on('show.bs.modal', function () {
         // 关键代码，如没将modal设置为 block，则$modala_dialog.height() 为零
         $(this).css('display', 'block');
         let modalHeight = $(window).height() / 2 - $('#modal_add_name').find('.modal-dialog').height() / 2;
         $(this).find('.modal-dialog').css({
             'margin-top': modalHeight
         });
-    });
-    $("#modal_add_name").on("shown.bs.modal", function (e) {
-        $("#modal_add_name_input").val('');
+    }).on("shown.bs.modal", function () {
         $("#modal_add_name_input").focus();
-        $('#modal_add_name_input').keydown(function (e) {
-            if (e.keyCode === 13) {
-                addName();
-            }
-        });
+    });
+    $("#modal_add_name_input").keydown(function (e) {
+        if (e.keyCode === 13) {
+            addName();
+            $(this).val('');
+        }
     });
 });
 
@@ -55,7 +65,7 @@ function readStaffAttributes(e, i) {
         $("#staff_attr_name_select").val(-1);
         $("#staff_attr_career_input").val("");
         $("#staff_attr_type_select").val(0);
-        $("#staff_attr_absence_check").removeAttr("checked");
+        $("#staff_attr_absence_check").prop("checked", false);
         $("#staff_attr_other_attack").children("label").removeClass("active").eq(0).addClass("active");
         $("#staff_attr_other_control").children("label").removeClass("active").eq(0).addClass("active");
         $("#staff_attr_other_element").children("label").removeClass("active").eq(0).addClass("active");
@@ -69,18 +79,13 @@ function readStaffAttributes(e, i) {
         $("#staff_attr_name_select").val(index_namelist);
         $("#staff_attr_career_input").val(list[i].career);
         $("#staff_attr_type_select").val(list[i].type);
-        if (list[i].absence) {
-            $("#staff_attr_absence_check").attr("checked", "checked");
-        } else {
-            $("#staff_attr_absence_check").removeAttr("checked");
-        }
+        $("#staff_attr_absence_check").prop("checked", list[i].absence);
         // other attributes
         $("#staff_attr_other_attack").children("label").removeClass("active").eq(list[i].attack - 1).addClass("active");
         $("#staff_attr_other_control").children("label").removeClass("active").eq(list[i].control - 1).addClass("active");
         $("#staff_attr_other_element").children("label").removeClass("active").eq(list[i].element - 1).addClass("active");
     } else {
         // Error 600:载入顺序与列表顺序不一致，需要手动查找定位（一般不会出现）
-        // TODO
         alert("错误代码600，请告知小明");
     }
 }
@@ -111,7 +116,7 @@ function loadStaffList() {
         }
         $staff_list.append(elementNode);
     });
-    loadNameList()
+    loadNameList();
 }
 
 function loadNameList() {
@@ -134,12 +139,56 @@ function addStaff() {
 }
 
 function addName() {
-    let name = $("#modal_add_name_input").val();
-    if (name === null) {
-        return
+    let name = $("#modal_add_name_input").val().trim();
+    let $modal = $("#modal_add_name");
+    if (name === null || name === '') {
+        $modal.modal('hide');
+        return;
     }
     staticNameList.push(name);
     loadNameList();
     $("#staff_attr_name_select").val(staticNameList.length - 1);
-    $("#modal_add_name").modal('hide');
+    $modal.modal('hide');
 }
+
+//fixme 目前只支持新增用户的保存，对旧用户有BUG
+function saveStaff() {
+    let id = parseInt($("#staff_attr_panel").attr("data-id"));
+    if (id === -1) {// no staff selected
+        // pop over
+        $('#staff_attr_save_btn').popover('show');
+        return;
+    }
+    // create staff
+    let newStaff = {
+        "id": staticLocalJson.staff_auto_increment,
+        "name": staticNameList[parseInt($("#staff_attr_name_select").val())],
+        "career": $("#staff_attr_career_input").val().trim(),
+        "type": parseInt($("#staff_attr_type_select").val()),
+        "absence": $("#staff_attr_absence_check").prop('checked'),
+        "attack": $("#staff_attr_other_attack").find('label.active').index() + 1,
+        "control": $("#staff_attr_other_control").find('label.active').index() + 1,
+        "element": $("#staff_attr_other_element").find('label.active').index() + 1
+    };
+    // save to cache
+    let staffList = staticLocalJson.staff_list;
+    staffList.push(newStaff);
+    staticLocalJson.staff_list = staffList;
+    staticLocalJson.staff_auto_increment = staticLocalJson.staff_auto_increment + 1;
+    // refresh staff button
+    let $staff_btn = $("#staff_list").children('div').children("button[data-id=" + newStaff.id + "]");
+    $staff_btn.text(newStaff.name + newStaff.career);
+    if (newStaff.absence) {
+        $staff_btn.attr("class","btn btn-default career-absence");
+    } else if (newStaff.type === 1) {
+        $staff_btn.attr("class","btn btn-default career-c");
+    } else if (newStaff.type === 2) {
+        $staff_btn.attr("class","btn btn-default career-assist");
+    } else if (newStaff.type === 3) {
+        $staff_btn.attr("class","btn btn-default career-priest");
+    } else {
+        $staff_btn.attr("class","btn btn-default");
+    }
+}
+
+//TODO save to local on leave
