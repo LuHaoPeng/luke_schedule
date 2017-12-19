@@ -1,0 +1,62 @@
+table tbody tr td:nth-child(n+6):nth-child(-n+9) {
+    background-color: #F0F0F0;
+}
+
+table tbody tr th:first-child {
+    width: 70px;
+}
+
+.container > .row > div:nth-child(n+2) {
+    border: #3c3c3c solid 2px;
+}
+
+.container > .row > p {
+    font-size: 1.2em;
+    margin: 0;
+    line-height: 150px;
+}
+
+.section-header {
+    padding-bottom: 8px;
+    border-bottom: 1px solid #eee;
+}
+
+.radio-btn-group {
+    margin: 4px 4px;
+}
+
+#schedule {
+    margin-bottom: 20px;
+}
+
+#staff_list {
+    padding-bottom: 18px;
+}
+
+#staff_list > div > button {
+    margin: 5px 5px;
+}
+
+/*定位染色*/
+.career-absence {
+    background-color: #adadad;
+}
+
+.career-c {
+    background-color: #d9edf7;
+}
+
+.career-assist {
+    background-color: #fcfbc5;
+}
+
+.career-priest {
+    background-color: #dff0d8;
+}
+
+/*footer*/
+
+.foot-wrap{
+    background-color: #373f48;
+    margin-top:80px;
+}
