@@ -60,3 +60,9 @@ table tbody tr th:first-child {
     background-color: #373f48;
     margin-top:80px;
 }
+
+/*bootstrap扩展*/
+.popover {
+    background-color: #fcf8e3;
+    color: #a94442;
+}

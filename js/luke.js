@@ -1,5 +1,8 @@
 'use strict';
-let staticLocalJson = null;
+let staticLocalJson = {
+    "staff_auto_increment": 0,
+    "staff_list": []
+};
 let staticNameList = [];
 $(document).ready(function () {
     init(function () {
@@ -9,6 +12,14 @@ $(document).ready(function () {
     });
 
     // init popover
+    $("#staff_list_add_btn").popover({
+        content: "一次只能新增一个空白团员",
+        placement: "top",
+        trigger: "manual"
+    }).click(addStaff).blur(function () {
+        $(this).popover('hide');
+    });
+
     $("#staff_attr_save_btn").popover({
         content: "请先在左侧团员列表选中其一",
         placement: "top",
@@ -17,12 +28,19 @@ $(document).ready(function () {
         $(this).popover('hide');
     });
 
-    $("#staff_list_add_btn").click(addStaff);
+    $("#staff_attr_del_btn").popover({
+        content: "请先在左侧团员列表选中其一",
+        placement: "top",
+        trigger: "manual"
+    }).click(deleteStaff).blur(function () {
+        $(this).popover('hide');
+    });
 
     // bind event
     $("#staff_list").children("div").on("click", "button", function (e) {
         readStaffAttributes(e, $(this).index());
     });
+    $(window).bind('beforeunload', saveToLocal);
 
     // modal
     $('#modal_add_name').on('show.bs.modal', function () {
@@ -85,6 +103,7 @@ function readStaffAttributes(e, i) {
         $("#staff_attr_other_control").children("label").removeClass("active").eq(list[i].control - 1).addClass("active");
         $("#staff_attr_other_element").children("label").removeClass("active").eq(list[i].element - 1).addClass("active");
     } else {
+        console.log(i+' '+list[i].id+' '+id);
         // Error 600:载入顺序与列表顺序不一致，需要手动查找定位（一般不会出现）
         alert("错误代码600，请告知小明");
     }
@@ -129,13 +148,19 @@ function loadNameList() {
 }
 
 function addStaff() {
+    let $btn_list = $("#staff_list").children('div');
     let increment = staticLocalJson.staff_auto_increment;
+    let exist = $btn_list.children("button").is("[data-id=" + increment + "]");
+    if (exist) {
+        $("#staff_list_add_btn").popover('show');
+        return;
+    }
     let elementNode = document.createElement("button");
     elementNode.setAttribute("type", "button");
-    elementNode.setAttribute("data-id", increment);
+    elementNode.setAttribute("data-id", increment.toString());
     elementNode.className = "btn btn-default";
     elementNode.innerHTML = "新增人员";
-    $("#staff_list").children("div").append(elementNode);
+    $btn_list.append(elementNode);
 }
 
 function addName() {
@@ -151,17 +176,17 @@ function addName() {
     $modal.modal('hide');
 }
 
-//fixme 目前只支持新增用户的保存，对旧用户有BUG
 function saveStaff() {
     let id = parseInt($("#staff_attr_panel").attr("data-id"));
-    if (id === -1) {// no staff selected
+    let $staff_btn = $("#staff_list").children('div').children("button[data-id=" + id + "]");
+    if (id === -1 || !$staff_btn.is('button')) {// no staff selected or btn was deleted
         // pop over
         $('#staff_attr_save_btn').popover('show');
         return;
     }
-    // create staff
-    let newStaff = {
-        "id": staticLocalJson.staff_auto_increment,
+    // read staff
+    let staff = {
+        "id": id,
         "name": staticNameList[parseInt($("#staff_attr_name_select").val())],
         "career": $("#staff_attr_career_input").val().trim(),
         "type": parseInt($("#staff_attr_type_select").val()),
@@ -170,25 +195,68 @@ function saveStaff() {
         "control": $("#staff_attr_other_control").find('label.active').index() + 1,
         "element": $("#staff_attr_other_element").find('label.active').index() + 1
     };
-    // save to cache
-    let staffList = staticLocalJson.staff_list;
-    staffList.push(newStaff);
-    staticLocalJson.staff_list = staffList;
-    staticLocalJson.staff_auto_increment = staticLocalJson.staff_auto_increment + 1;
+    if (staff.id === staticLocalJson.staff_auto_increment) { // new staff
+        // save to cache
+        staticLocalJson.staff_list.push(staff);
+        staticLocalJson.staff_auto_increment++;
+    } else { // old staff
+        let index = $staff_btn.index();
+        if (staticLocalJson.staff_list[index].id === staff.id) {
+            staticLocalJson.staff_list[index] = staff;
+        } else {
+            // Error 601:载入顺序与列表顺序不一致，需要手动查找定位（一般不会出现）
+            alert("错误代码601，请告知小明");
+        }
+    }
     // refresh staff button
-    let $staff_btn = $("#staff_list").children('div').children("button[data-id=" + newStaff.id + "]");
-    $staff_btn.text(newStaff.name + newStaff.career);
-    if (newStaff.absence) {
-        $staff_btn.attr("class","btn btn-default career-absence");
-    } else if (newStaff.type === 1) {
-        $staff_btn.attr("class","btn btn-default career-c");
-    } else if (newStaff.type === 2) {
-        $staff_btn.attr("class","btn btn-default career-assist");
-    } else if (newStaff.type === 3) {
-        $staff_btn.attr("class","btn btn-default career-priest");
+    $staff_btn.text(staff.name + staff.career);
+    if (staff.absence) {
+        $staff_btn.attr("class", "btn btn-default career-absence");
+    } else if (staff.type === 1) {
+        $staff_btn.attr("class", "btn btn-default career-c");
+    } else if (staff.type === 2) {
+        $staff_btn.attr("class", "btn btn-default career-assist");
+    } else if (staff.type === 3) {
+        $staff_btn.attr("class", "btn btn-default career-priest");
     } else {
-        $staff_btn.attr("class","btn btn-default");
+        $staff_btn.attr("class", "btn btn-default");
     }
 }
 
-//TODO save to local on leave
+function deleteStaff() {
+    let id = parseInt($("#staff_attr_panel").attr("data-id"));
+    let $staff_btn = $("#staff_list").children('div').children("button[data-id=" + id + "]");
+    if (id === -1 || !$staff_btn.is('button')) {// no staff selected or btn was deleted
+        // pop over
+        $('#staff_attr_del_btn').popover('show');
+        return;
+    }
+
+    let index = $staff_btn.index();
+    // delete btn
+    $staff_btn.remove();
+    if (staticLocalJson.staff_auto_increment === id) {// newly added
+        return;
+    }
+    // delete from static json
+    if (staticLocalJson.staff_list[index].id === id) {
+        staticLocalJson.staff_list.splice(index, 1);
+    } else {
+        // Error 602:载入顺序与列表顺序不一致，需要手动查找定位（一般不会出现）
+        alert("错误代码602，请告知小明");
+    }
+}
+
+function saveToLocal() {
+    let dataToStore = JSON.stringify(staticLocalJson);
+    $.ajax({
+        method: 'post',
+        url: 'php/saveJSON.php',
+        async: true,
+        data: {
+            'toStore': dataToStore
+        }
+    }).done(function (data) {
+        console.log(data + ' characters saved');
+    });
+}
