@@ -40,7 +40,11 @@ $(document).ready(function () {
     $("#staff_list").children("div").on("click", "button", function (e) {
         readStaffAttributes(e, $(this).index());
     });
-    $(window).bind('beforeunload', saveToLocal);
+    window.onbeforeunload = saveToLocal;
+
+    .click(function () {
+       console.log("changed");
+    });
 
     // modal
     $('#modal_add_name').on('show.bs.modal', function () {
@@ -252,7 +256,7 @@ function saveToLocal() {
     $.ajax({
         method: 'post',
         url: 'php/saveJSON.php',
-        async: true,
+        async: false,// important
         data: {
             'toStore': dataToStore
         }
