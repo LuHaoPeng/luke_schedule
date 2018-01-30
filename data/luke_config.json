@@ -1,5 +1,5 @@
 {
-  "staff_auto_increment": 6,
+  "staff_auto_increment": 8,
   "staff_list": [
     {
       "id": 1,
@@ -47,6 +47,26 @@
       "career": "母鸡",
       "type": 2,
       "absence": true,
+      "attack": 2,
+      "control": 1,
+      "element": 3
+    },
+    {
+      "id": 6,
+      "name": "卡卡",
+      "career": "召唤",
+      "type": 2,
+      "absence": false,
+      "attack": 2,
+      "control": 1,
+      "element": 3
+    },
+    {
+      "id": 7,
+      "name": "卡卡",
+      "career": "酱油",
+      "type": 2,
+      "absence": false,
       "attack": 2,
       "control": 1,
       "element": 3

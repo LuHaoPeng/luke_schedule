@@ -11,40 +11,14 @@ $(document).ready(function () {
         loadStaffList();
     });
 
-    // init popover
-    $("#staff_list_add_btn").popover({
-        content: "一次只能新增一个空白团员",
-        placement: "top",
-        trigger: "manual"
-    }).click(addStaff).blur(function () {
-        $(this).popover('hide');
-    });
+    // init popovers
+    initPopovers();
 
-    $("#staff_attr_save_btn").popover({
-        content: "请先在左侧团员列表选中其一",
-        placement: "top",
-        trigger: "manual"
-    }).click(saveStaff).blur(function () {
-        $(this).popover('hide');
-    });
+    // bind events
+    bindEvents();
 
-    $("#staff_attr_del_btn").popover({
-        content: "请先在左侧团员列表选中其一",
-        placement: "top",
-        trigger: "manual"
-    }).click(deleteStaff).blur(function () {
-        $(this).popover('hide');
-    });
-
-    // bind event
-    $("#staff_list").children("div").on("click", "button", function (e) {
-        readStaffAttributes(e, $(this).index());
-    });
-    window.onbeforeunload = saveToLocal;
-
-    .click(function () {
-       console.log("changed");
-    });
+    // make draggable
+    makeDraggable($('#staff_list'), $("#staff_list_move_handle"));
 
     // modal
     $('#modal_add_name').on('show.bs.modal', function () {
@@ -78,6 +52,73 @@ function init(callback) {
     }).done(callback);
 }
 
+/**
+ * init popovers
+ */
+function initPopovers() {
+    $("#staff_list_add_btn").popover({
+        content: "一次只能新增一个空白团员",
+        placement: "top",
+        trigger: "manual"
+    }).click(addStaff).blur(function () {
+        $(this).popover('hide');
+    });
+
+    $("#staff_attr_save_btn").popover({
+        content: "请先在左侧团员列表选中其一",
+        placement: "top",
+        trigger: "manual"
+    }).click(saveStaff).blur(function () {
+        $(this).popover('hide');
+    });
+
+    $("#staff_attr_del_btn").popover({
+        content: "请先在左侧团员列表选中其一",
+        placement: "top",
+        trigger: "manual"
+    }).click(deleteStaff).blur(function () {
+        $(this).popover('hide');
+    });
+}
+
+/**
+ * bind events
+ */
+function bindEvents() {
+    // click on a staff button to read its attributes
+    $("#staff_list").children("div").on("click", "button", function (e) {
+        readStaffAttributes(e, $(this).index());
+    });
+
+    // save data on leaving
+    window.onbeforeunload = saveToLocal;
+
+    // filter staff
+    $("#staff_list_filter").find("input[name='options']").change(function () {
+        let type = $(this).attr("data-filter");
+        let className;
+        if (type === '1') {
+            className = '.career-c';
+        } else if (type === '2') {
+            className = '.career-assist';
+        } else {
+            className = '.career-priest';
+        }
+        if ($(this).parent().hasClass('active')) {
+            // show
+            $("#staff_list").children('div').find(className).show();
+        } else {
+            // hide
+            $("#staff_list").children('div').find(className).hide();
+        }
+    });
+}
+
+/**
+ * when a staff button is clicked, load his attributes
+ * @param e event object
+ * @param i index of that button
+ */
 function readStaffAttributes(e, i) {
     let id = parseInt(e.target.getAttribute("data-id"));
     $("#staff_attr_panel").attr("data-id", id);
@@ -113,6 +154,9 @@ function readStaffAttributes(e, i) {
     }
 }
 
+/**
+ * load staff list on the left from local json
+ */
 function loadStaffList() {
     let $staff_list = $("#staff_list").children("div");
     $staff_list.empty();
@@ -128,20 +172,24 @@ function loadStaffList() {
         elementNode.setAttribute("data-id", item.id);
         elementNode.className = "btn btn-default";
         elementNode.innerHTML = item.name + item.career;
-        if (item.absence) {
-            elementNode.className += " career-absence";
-        } else if (item.type === 1) {
+        if (item.type === 1) {
             elementNode.className += " career-c";
         } else if (item.type === 2) {
             elementNode.className += " career-assist";
         } else {
             elementNode.className += " career-priest";
         }
+        if (item.absence) {
+            elementNode.className += " career-absence";
+        }
         $staff_list.append(elementNode);
     });
     loadNameList();
 }
 
+/**
+ * create name select widget from static list
+ */
 function loadNameList() {
     let $name_select = $("#staff_attr_name_select");
     $name_select.empty();
@@ -151,6 +199,9 @@ function loadNameList() {
     });
 }
 
+/**
+ * add a blank staff button
+ */
 function addStaff() {
     let $btn_list = $("#staff_list").children('div');
     let increment = staticLocalJson.staff_auto_increment;
@@ -167,6 +218,10 @@ function addStaff() {
     $btn_list.append(elementNode);
 }
 
+/**
+ * add a new staff name to static list
+ * and reload the name select widget
+ */
 function addName() {
     let name = $("#modal_add_name_input").val().trim();
     let $modal = $("#modal_add_name");
@@ -180,6 +235,10 @@ function addName() {
     $modal.modal('hide');
 }
 
+/**
+ * save the attribute changes to local
+ * and refresh the corresponding button
+ */
 function saveStaff() {
     let id = parseInt($("#staff_attr_panel").attr("data-id"));
     let $staff_btn = $("#staff_list").children('div').children("button[data-id=" + id + "]");
@@ -214,9 +273,7 @@ function saveStaff() {
     }
     // refresh staff button
     $staff_btn.text(staff.name + staff.career);
-    if (staff.absence) {
-        $staff_btn.attr("class", "btn btn-default career-absence");
-    } else if (staff.type === 1) {
+    if (staff.type === 1) {
         $staff_btn.attr("class", "btn btn-default career-c");
     } else if (staff.type === 2) {
         $staff_btn.attr("class", "btn btn-default career-assist");
@@ -225,8 +282,14 @@ function saveStaff() {
     } else {
         $staff_btn.attr("class", "btn btn-default");
     }
+    if (staff.absence) {
+        $staff_btn.addClass("career-absence");
+    }
 }
 
+/**
+ * delete the corresponding staff button both from page and static json
+ */
 function deleteStaff() {
     let id = parseInt($("#staff_attr_panel").attr("data-id"));
     let $staff_btn = $("#staff_list").children('div').children("button[data-id=" + id + "]");
@@ -251,6 +314,9 @@ function deleteStaff() {
     }
 }
 
+/**
+ * save all changes to local .json file
+ */
 function saveToLocal() {
     let dataToStore = JSON.stringify(staticLocalJson);
     $.ajax({
@@ -262,5 +328,32 @@ function saveToLocal() {
         }
     }).done(function (data) {
         console.log(data + ' characters saved');
+    });
+}
+
+/**
+ * make the corresponding dom draggable
+ * @param $object jquery selector
+ * @param $handle the move handle
+ */
+function makeDraggable($object, $handle) {
+    if (!$object instanceof jQuery) {
+        return;
+    }
+    let isMove = false;
+    let X, Y;
+    $handle.mousedown(function (e) {
+        isMove = true;
+        X = e.pageX - parseInt($object.css("left"));
+        Y = e.pageY - parseInt($object.css("top"));
+    });
+    $(document).mousemove(function (e) {
+        if (isMove) {
+            let left = e.pageX - X;
+            let top = e.pageY - Y;
+            $object.css({left: left, top: top});
+        }
+    }).mouseup(function () {
+        isMove = false;
     });
 }

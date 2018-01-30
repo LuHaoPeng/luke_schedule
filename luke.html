@@ -184,21 +184,26 @@
                 </tbody>
             </table>
         </div>
-        <div class="col-md-7" id="staff_list">
+        <div class="col-md-7 draggable" id="staff_list">
             <h3>团员列表
                 <div class="pull-right">
+                    <button type="button" class="btn btn-info btn-sm" style="color: #fff"
+                            id="staff_list_move_handle"><span
+                            class="glyphicon glyphicon-move"></span>
+                    </button>
                     <div class="btn-group btn-group-sm" data-toggle="buttons" role="group" id="staff_list_filter">
                         <label class="btn btn-default active">
-                            <input type="checkbox" name="options" data-filter="1"> C
+                            <input type="checkbox" name="options" data-filter="1" checked> C
                         </label>
                         <label class="btn btn-default active">
-                            <input type="checkbox" name="options" data-filter="2"> 辅助
+                            <input type="checkbox" name="options" data-filter="2" checked> 辅助
                         </label>
                         <label class="btn btn-default active">
-                            <input type="checkbox" name="options" data-filter="3"> 奶
+                            <input type="checkbox" name="options" data-filter="3" checked> 奶
                         </label>
                     </div>
-                    <button type="button" class="btn btn-success btn-sm" style="color: #fff" id="staff_list_add_btn"><span
+                    <button type="button" class="btn btn-success btn-sm" style="color: #fff"
+                            id="staff_list_add_btn"><span
                             class="glyphicon glyphicon-plus-sign"></span> 添加
                     </button>
                 </div>
@@ -206,17 +211,14 @@
             <!--button 列表-->
             <div></div>
         </div>
-        <p class="col-md-1 text-center" style="width: 4.1%;">
-            <span class="glyphicon glyphicon-arrow-right hidden-xs"></span>
-            <span class="glyphicon glyphicon-arrow-down visible-xs-inline"></span>
-        </p>
-        <div class="col-md-5" style="width: 37.5%;" id="staff_attr_panel" data-id="-1">
+        <div class="col-md-5" style="width: 37.3%;margin-left: 4.366667%;" id="staff_attr_panel" data-id="-1">
             <h3>团员属性
                 <div class="pull-right">
                     <button type="button" class="btn btn-info btn-sm" id="staff_attr_save_btn" style="color: #fff"><span
                             class="glyphicon glyphicon-floppy-save"></span> 保存
                     </button>
-                    <button type="button" class="btn btn-danger btn-sm" id="staff_attr_del_btn" style="color: #fff"><span
+                    <button type="button" class="btn btn-danger btn-sm" id="staff_attr_del_btn"
+                            style="color: #fff"><span
                             class="glyphicon glyphicon-minus-sign"></span> 删除
                     </button>
                 </div>

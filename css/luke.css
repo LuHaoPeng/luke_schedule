@@ -37,9 +37,17 @@ table tbody tr th:first-child {
     margin: 5px 5px;
 }
 
+.draggable {
+    background-color: white;
+    z-index: 50;
+    /*resize: both;*/
+    /*overflow: auto;*/
+    box-shadow: 0 0 20px #777777;
+}
+
 /*定位染色*/
 .career-absence {
-    background-color: #adadad;
+    background-color: #adadad!important;
 }
 
 .career-c {
