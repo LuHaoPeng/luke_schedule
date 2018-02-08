@@ -17,6 +17,9 @@ $(document).ready(function () {
     // bind events
     bindEvents();
 
+    // bind draw line
+    bindDrawLine();
+
     // make draggable
     makeDraggable($('#staff_list'), $("#staff_list_move_handle"));
 
@@ -31,7 +34,7 @@ $(document).ready(function () {
     }).on("shown.bs.modal", function () {
         $("#modal_add_name_input").focus();
     });
-    $("#modal_add_name_input").keydown(function (e) {
+    $("#modal_add_name_input").on('keydown', function (e) {
         if (e.keyCode === 13) {
             addName();
             $(this).val('');
@@ -60,7 +63,7 @@ function initPopovers() {
         content: "一次只能新增一个空白团员",
         placement: "top",
         trigger: "manual"
-    }).click(addStaff).blur(function () {
+    }).on('click', addStaff).on('blur', function () {
         $(this).popover('hide');
     });
 
@@ -68,7 +71,7 @@ function initPopovers() {
         content: "请先在左侧团员列表选中其一",
         placement: "top",
         trigger: "manual"
-    }).click(saveStaff).blur(function () {
+    }).on('click', saveStaff).on('blur', function () {
         $(this).popover('hide');
     });
 
@@ -76,7 +79,7 @@ function initPopovers() {
         content: "请先在左侧团员列表选中其一",
         placement: "top",
         trigger: "manual"
-    }).click(deleteStaff).blur(function () {
+    }).on('click', deleteStaff).on('blur', function () {
         $(this).popover('hide');
     });
 }
@@ -86,7 +89,8 @@ function initPopovers() {
  */
 function bindEvents() {
     // click on a staff button to read its attributes
-    $("#staff_list").children("div").on("click", "button", function (e) {
+    $("#staff_list").children("div").on('click', 'button', function (e) {
+        console.log('click button');
         readStaffAttributes(e, $(this).index());
     });
 
@@ -94,15 +98,19 @@ function bindEvents() {
     window.onbeforeunload = saveToLocal;
 
     // filter staff
-    $("#staff_list_filter").find("input[name='options']").change(function () {
+    $("#staff_list_filter").find("input[name='options']").on('change', function () {
         let type = $(this).attr("data-filter");
         let className;
         if (type === '1') {
             className = '.career-c';
         } else if (type === '2') {
             className = '.career-assist';
-        } else {
+        } else if (type === '3') {
             className = '.career-priest';
+        } else if (type === '4') {
+            className = '.in-schedule';
+        } else {
+            className = '.career-absence';
         }
         if ($(this).parent().hasClass('active')) {
             // show
@@ -148,7 +156,7 @@ function readStaffAttributes(e, i) {
         $("#staff_attr_other_control").children("label").removeClass("active").eq(list[i].control - 1).addClass("active");
         $("#staff_attr_other_element").children("label").removeClass("active").eq(list[i].element - 1).addClass("active");
     } else {
-        console.log(i+' '+list[i].id+' '+id);
+        console.log(i + ' ' + list[i].id + ' ' + id);
         // Error 600:载入顺序与列表顺序不一致，需要手动查找定位（一般不会出现）
         alert("错误代码600，请告知小明");
     }
@@ -333,7 +341,7 @@ function saveToLocal() {
 
 /**
  * make the corresponding dom draggable
- * @param $object jquery selector
+ * @param $object jquery selector, object to be dragged
  * @param $handle the move handle
  */
 function makeDraggable($object, $handle) {
@@ -342,18 +350,68 @@ function makeDraggable($object, $handle) {
     }
     let isMove = false;
     let X, Y;
-    $handle.mousedown(function (e) {
+    $handle.on('mousedown', function (e) {
         isMove = true;
         X = e.pageX - parseInt($object.css("left"));
         Y = e.pageY - parseInt($object.css("top"));
     });
-    $(document).mousemove(function (e) {
+    $(document).on('mousemove', function (e) {
         if (isMove) {
             let left = e.pageX - X;
             let top = e.pageY - Y;
             $object.css({left: left, top: top});
         }
-    }).mouseup(function () {
+    }).on('mouseup', function () {
         isMove = false;
+    });
+}
+
+/**
+ * when drag event happening on a staff button, draw a line from start to end
+ * if the dragging ends within the schedule chart, fill the cell with the staff
+ */
+function bindDrawLine() {
+    // reinitialize svg width & height
+    $('.line').css({width: document.body.scrollWidth, height: document.body.scrollHeight});
+    // bind
+    let staffId;
+    let isDraw = false, isDrop = false;
+    // pick staff
+    let $buttons = $("#staff_list").children('div');
+    $buttons.on('mousedown', 'button', function (e) {
+        console.log('down button');
+        // unlock drawing
+        isDraw = true;
+        // read staff id
+        staffId = parseInt($(e.target).attr('data-id'));
+        // draw a line
+        $('svg').show().children('line').attr({x1: e.pageX, y1: e.pageY, x2: e.pageX, y2: e.pageY});
+    });
+    // draw line
+    $(document).on('mousemove', function (e) {
+        if (isDraw) {
+            // draw a line
+            $('svg').children('line').attr({x2: e.pageX, y2: e.pageY});
+        }
+    }).on('mouseup', function () {
+        console.log('up document');
+        if (isDraw) {
+            isDraw = false;
+            $('svg').hide();
+            isDrop = true;
+        }
+    });
+    // drop staff
+    $('table tr td').on('mouseover', function () {
+        if (isDrop) {
+            let staff = staticLocalJson.staff_list[staffId - 1];
+            if (staff.id === staffId) {
+                // fill in the cell
+                $(this).attr({'data-name': staff.name}).text(staff.name + staff.career);
+                // hide source
+
+            }
+            isDrop = false;
+        }
     });
 }

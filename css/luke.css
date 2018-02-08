@@ -1,9 +1,16 @@
+/*table*/
 table tbody tr td:nth-child(n+6):nth-child(-n+9) {
     background-color: #F0F0F0;
 }
 
 table tbody tr th:first-child {
     width: 70px;
+}
+
+table {
+    table-layout: fixed;
+    word-break: break-all;
+    word-wrap: break-word;
 }
 
 .container > .row > div:nth-child(n+2) {
@@ -39,15 +46,13 @@ table tbody tr th:first-child {
 
 .draggable {
     background-color: white;
-    z-index: 50;
-    /*resize: both;*/
-    /*overflow: auto;*/
+    z-index: 10;
     box-shadow: 0 0 20px #777777;
 }
 
 /*定位染色*/
 .career-absence {
-    background-color: #adadad!important;
+    background-color: #adadad !important;
 }
 
 .career-c {
@@ -62,11 +67,19 @@ table tbody tr th:first-child {
     background-color: #dff0d8;
 }
 
-/*footer*/
+/*svg line*/
+.line {
+    position: absolute;
+    z-index: 20;
+    left: 0;
+    top: 0;
+    display: none;
+}
 
-.foot-wrap{
+/*footer*/
+.foot-wrap {
     background-color: #373f48;
-    margin-top:80px;
+    margin-top: 80px;
 }
 
 /*bootstrap扩展*/
