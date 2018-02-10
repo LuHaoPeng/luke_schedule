@@ -406,6 +406,7 @@ function bindDrawLine() {
         if (isDraw) {
             isDraw = false;
             $('svg').hide();
+
             isDrop = true;
         }
     });
