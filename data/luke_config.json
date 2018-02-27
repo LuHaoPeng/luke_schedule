@@ -3,17 +3,17 @@
   "staff_list": [
     {
       "id": 1,
-      "name": "卡卡",
-      "career": "剑宗",
-      "type": 1,
+      "name": "空",
+      "career": "",
+      "type": 0,
       "absence": false,
-      "attack": 1,
+      "attack": 2,
       "control": 1,
-      "element": 2
+      "element": 3
     },
     {
       "id": 2,
-      "name": "卡卡",
+      "name": "9",
       "career": "元素",
       "type": 1,
       "absence": false,
@@ -23,7 +23,7 @@
     },
     {
       "id": 3,
-      "name": "卡卡",
+      "name": "小明",
       "career": "奶妈",
       "type": 3,
       "absence": false,
@@ -33,7 +33,7 @@
     },
     {
       "id": 4,
-      "name": "卡卡",
+      "name": "壕壕",
       "career": "气功",
       "type": 2,
       "absence": false,
@@ -64,12 +64,13 @@
     {
       "id": 7,
       "name": "卡卡",
-      "career": "酱油",
-      "type": 2,
+      "career": "剑宗",
+      "type": 1,
       "absence": false,
-      "attack": 2,
+      "attack": 1,
       "control": 1,
-      "element": 3
+      "element": 2
     }
-  ]
+  ],
+  "last_schedule": ""
 }

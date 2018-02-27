@@ -3,14 +3,21 @@ table tbody tr td:nth-child(n+6):nth-child(-n+9) {
     background-color: #F0F0F0;
 }
 
-table tbody tr th:first-child {
-    width: 70px;
+table tr th:nth-child(3) {
+    background-color: #E8E8E8;
 }
 
 table {
     table-layout: fixed;
     word-break: break-all;
     word-wrap: break-word;
+}
+
+.btn-xxs {
+    padding: 2px 5px;
+    font-size: 8px;
+    line-height: 74%;
+    border-radius: 3px;
 }
 
 .container > .row > div:nth-child(n+2) {
@@ -78,8 +85,11 @@ table {
 
 /*footer*/
 .foot-wrap {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
     background-color: #373f48;
-    margin-top: 80px;
+    z-index: 50;
 }
 
 /*bootstrap扩展*/
