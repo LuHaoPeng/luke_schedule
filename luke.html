@@ -189,6 +189,23 @@
             </div><!-- /.modal-content -->
         </div><!-- /.modal -->
     </div>
+    <div class="modal fade" id="modal_authorize" tabindex="-1" role="dialog" data-backdrop="static" data-keyboard="false" data-show="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title">授权码</h4>
+                </div>
+                <div class="modal-body">
+                    <input type="text" class="form-control" id="modal_authorize_input" placeholder="请输入您分配的授权码">
+                    <span id="helpBlock" class="help-block" style="color: #a94442;"></span>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-warning pull-left" data-dismiss="modal">体验（所做修改不会保存）</button>
+                    <button type="button" class="btn btn-primary" onclick="authorize();">进入</button>
+                </div>
+            </div><!-- /.modal-content -->
+        </div><!-- /.modal -->
+    </div>
 </div>
 <svg xmlns="http://www.w3.org/2000/svg" version="1.1" class="line">
     <line x1="0" y1="0" x2="0" y2="0" style="stroke:#006600;"></line>
@@ -204,6 +221,7 @@
 <script src="node_modules/jquery/dist/jquery.min.js"></script>
 <script src="js/bootstrap.min.js"></script>
 <script src="js/bootstrap-switch.min.js"></script>
+<script src="https://cdn.bootcss.com/blueimp-md5/2.10.0/js/md5.js"></script>
 <script src="dist/js/luke.min.js"></script>
 </body>
 </html>

@@ -5,7 +5,8 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 var staticLocalJson = {
     "staff_auto_increment": 0,
     "staff_list": [],
-    "last_schedule": ""
+    "last_schedule": "",
+    "authorize": ""
 };
 var staticNameList = [];
 $(document).ready(function () {
@@ -51,23 +52,10 @@ $(document).ready(function () {
     // make draggable
     makeDraggable($('div#staff_list'), $("button#staff_list_move_handle"));
 
-    // modal
-    $('div#modal_add_name').on('show.bs.modal', function () {
-        // 关键代码，如没将modal设置为 block，则$modala_dialog.height() 为零
-        $(this).css('display', 'block');
-        var modalHeight = $(window).height() / 2 - $('div#modal_add_name').find('.modal-dialog').height() / 2;
-        $(this).find('.modal-dialog').css({
-            'margin-top': modalHeight
-        });
-    }).on("shown.bs.modal", function () {
-        $("input#modal_add_name_input").focus();
-    });
-    $("input#modal_add_name_input").on('keydown', function (e) {
-        if (e.keyCode === 13) {
-            addName();
-            $(this).val('');
-        }
-    });
+    // show modal authorize
+    if (sessionStorage.authorized === null) {
+        $("div#modal_authorize").modal('show');
+    }
 });
 
 /**
@@ -148,10 +136,43 @@ function bindEvents() {
         }
     });
 
-    var alphabet = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
-    var time = ['20:00', '20:30', '21:00', '21:30', '22:00', '22:30', '23:00', '23:30', '0:00', '0:30'];
+    // modal
+    $('div#modal_add_name').on('show.bs.modal', function () {
+        // 关键代码，如没将modal设置为 block，则$modala_dialog.height() 为零
+        $(this).css('display', 'block');
+        var modalHeight = $(window).height() / 2 - $('div#modal_add_name').find('.modal-dialog').height() / 2;
+        $(this).find('.modal-dialog').css({
+            'margin-top': modalHeight
+        });
+    }).on("shown.bs.modal", function () {
+        $("input#modal_add_name_input").focus();
+    });
+    $("input#modal_add_name_input").on('keydown', function (e) {
+        if (e.keyCode === 13) {
+            addName();
+            $(this).val('');
+        }
+    });
+    $('div#modal_authorize').on('show.bs.modal', function () {
+        // 关键代码，如没将modal设置为 block，则$modala_dialog.height() 为零
+        $(this).css('display', 'block');
+        var modalHeight = $(window).height() / 2 - $('div#modal_authorize').find('.modal-dialog').height() / 2;
+        $(this).find('.modal-dialog').css({
+            'margin-top': modalHeight
+        });
+    }).on("shown.bs.modal", function () {
+        $("input#modal_authorize_input").focus();
+    });
+    $("input#modal_authorize_input").on('keydown', function (e) {
+        if (e.keyCode === 13) {
+            authorize();
+            $(this).val('');
+        }
+    });
 
     // row/chart add&delete
+    var alphabet = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
+    var time = ['20:00', '20:30', '21:00', '21:30', '22:00', '22:30', '23:00', '23:30', '0:00', '0:30'];
     $("div#schedule").on('click', "[name='row-add']", function () {
         var $table = $(this).parentsUntil('div#schedule').filter('table');
         var count = $table.find('tbody tr').length;
@@ -176,6 +197,24 @@ function bindEvents() {
         $table.eq(count - 1).remove();
         resizeSVG();
     });
+}
+
+/**
+ * authorize. if not, the user won't have access to save changes
+ */
+function authorize() {
+    var code = $("input#modal_authorize_input").val().trim();
+    var $modal = $("div#modal_authorize");
+    // clear help block
+    var $help = $("span#helpBlock");
+    $help.text('');
+    if (md5(code) === staticLocalJson.authorize) {
+        sessionStorage.authorized = true;
+        $modal.modal('hide');
+    } else {
+        sessionStorage.authorized = false;
+        $help.text('授权码不对，请联系小明');
+    }
 }
 
 /**
@@ -387,6 +426,10 @@ function deleteStaff() {
  * save all changes to local .json file
  */
 function saveToLocal() {
+    console.log(sessionStorage.authorized);
+    if (sessionStorage.authorized === null || sessionStorage.authorized === false) {
+        return;
+    }
     // save schedule to local
     staticLocalJson.last_schedule = $("div#schedule").html();
 
