@@ -187,7 +187,6 @@ function bindEvents() {
     $("input#modal_authorize_input").on('keydown', function (e) {
         if (e.keyCode === 13) {
             checkAuth();
-            $(this).val('');
         }
     });
 
