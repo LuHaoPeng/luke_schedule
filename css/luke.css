@@ -57,6 +57,42 @@ table {
     box-shadow: 0 0 20px #777777;
 }
 
+/*search*/
+input[type=search] {
+    background: url(../img/search-icon.png) no-repeat 7px center;
+    border: none;
+    font-size: 0.7em;
+    width: 20px;
+    padding-left: 10px;
+    color: transparent;
+    cursor: pointer;
+    outline: none;
+    -webkit-transition: all .5s;
+    -moz-transition: all .5s;
+    transition: all .5s;
+    -webkit-box-sizing: content-box;
+}
+
+input[type=search]:focus {
+    border-bottom: #aaa 1px solid;
+    width: 120px;
+    padding-left: 30px;
+    color: #666;
+    background-color: #fff;
+    cursor: auto;
+}
+
+#schedule_search {
+    position: absolute;
+    font-size: 1.2em;
+    top: 15px;
+    right: 20px;
+}
+
+.schedule-search-result {
+    background-color: #5bc0de !important;
+}
+
 /*定位染色*/
 .career-absence {
     background-color: #adadad !important;

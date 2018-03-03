@@ -3,7 +3,8 @@ let staticLocalJson = {
     "staff_auto_increment": 0,
     "staff_list": [],
     "last_schedule": "",
-    "authorize": ""
+    "auth_pre": "",
+    "auth_fun": ""
 };
 let staticNameList = [];
 $(document).ready(function () {
@@ -50,7 +51,7 @@ $(document).ready(function () {
     makeDraggable($('div#staff_list'), $("button#staff_list_move_handle"));
 
     // show modal authorize
-    if (sessionStorage.authorized === null) {
+    if (typeof sessionStorage.authorized === "undefined") {
         $("div#modal_authorize").modal('show');
     }
 });
@@ -133,6 +134,26 @@ function bindEvents() {
         }
     });
 
+    // search
+    $("input#staff_search").on('change', function () {
+        let $list = $("div#staff_list").children("div").children("button");
+        let key = $(this).val();
+        if (key === "") {
+            $list.show();
+        } else {
+            $list.hide().filter(":contains(" + key + ")").show();
+        }
+    });
+    $("input#schedule_search").on('change', function () {
+        let $cell = $("div#schedule").find("tbody tr td");
+        let key = $(this).val();
+        if (key === "") {
+            $cell.removeClass("schedule-search-result");
+        } else {
+            $cell.removeClass("schedule-search-result").filter(":contains(" + key + ")").addClass("schedule-search-result");
+        }
+    });
+
     // modal
     $('div#modal_add_name').on('show.bs.modal', function () {
         // 关键代码，如没将modal设置为 block，则$modala_dialog.height() 为零
@@ -162,7 +183,7 @@ function bindEvents() {
     });
     $("input#modal_authorize_input").on('keydown', function (e) {
         if (e.keyCode === 13) {
-            authorize();
+            checkAuth();
             $(this).val('');
         }
     });
@@ -227,21 +248,51 @@ function bindEvents() {
 }
 
 /**
- * authorize. if not, the user won't have access to save changes
+ * experience. have none access to save changes
+ */
+function experience() {
+    sessionStorage.authorized = "none";
+    $("div#modal_authorize").modal('hide');
+}
+
+/**
+ * check auth. `premium`: have all access. `fundamental`: access to save staff.
+ */
+function checkAuth() {
+    let code = $("input#modal_authorize_input").val().trim();
+    let $enter = $("button#btn_auth_enter");
+    // clear help block
+    let $help = $("span#helpBlock");
+    let result = md5(code);
+    // check
+    if (result === staticLocalJson.auth_pre) {
+        $help.text('团长授权：可保存所有改动');
+        $enter.prop("disabled", false);
+    } else if (result === staticLocalJson.auth_fun) {
+        $help.text('团员授权：只可保存团员区改动');
+        $enter.prop("disabled", false);
+    } else {
+        $help.text('授权码不对，无保存权限，请联系小明');
+        $enter.prop("disabled", true);
+    }
+}
+
+/**
+ * authorize. set session authorization and enter.
  */
 function authorize() {
     let code = $("input#modal_authorize_input").val().trim();
-    let $modal = $("div#modal_authorize");
-    // clear help block
-    let $help = $("span#helpBlock");
-    $help.text('');
-    if (md5(code) === staticLocalJson.authorize) {
-        sessionStorage.authorized = true;
-        $modal.modal('hide');
+    let result = md5(code);
+    // check
+    if (result === staticLocalJson.auth_pre) {
+        sessionStorage.authorized = "premium";
+    } else if (result === staticLocalJson.auth_fun) {
+        sessionStorage.authorized = "fundamental";
     } else {
-        sessionStorage.authorized = false;
-        $help.text('授权码不对，请联系小明');
+        sessionStorage.authorized = "none";
+        return;
     }
+    $("div#modal_authorize").modal('hide');
 }
 
 /**
@@ -448,25 +499,29 @@ function deleteStaff() {
  * save all changes to local .json file
  */
 function saveToLocal() {
-    console.log(sessionStorage.authorized);
-    if (sessionStorage.authorized === null || sessionStorage.authorized === false) {
+    if (sessionStorage.authorized === null || sessionStorage.authorized === "none") {
         return;
     }
+    // premium -----
     // save schedule to local
-    staticLocalJson.last_schedule = $("div#schedule").html();
-
-    // stringify
-    let dataToStore = JSON.stringify(staticLocalJson, null, 4);
-    $.ajax({
-        method: 'post',
-        url: 'php/saveJSON.php',
-        async: false,// important
-        data: {
-            'toStore': dataToStore
-        }
-    }).done(function (data) {
-        console.log(data + ' characters saved');
-    });
+    if (sessionStorage.authorized === "premium") {
+        staticLocalJson.last_schedule = $("div#schedule").html();
+    }
+    // fundamental -----
+    // save json
+    if (sessionStorage.authorized === "fundamental") {
+        let dataToStore = JSON.stringify(staticLocalJson, null, 4);
+        $.ajax({
+            method: 'post',
+            url: 'php/saveJSON.php',
+            async: false,// important
+            data: {
+                'toStore': dataToStore
+            }
+        }).done(function (data) {
+            console.log(data + ' characters saved');
+        });
+    }
 }
 
 /**
@@ -543,7 +598,7 @@ function bindDrawLine() {
             isDrop = true;
             setTimeout(function () {
                 isDrop = false;
-            }, 10);
+            }, 50);
         }
     });
     // drop staff
@@ -579,7 +634,6 @@ function bindDrawLine() {
  * @param scale boolean. true:wholly, false:partly. if false, a root object is needed
  */
 function markDuplicate(scale) {
-    // TODO async
     if (scale) {
 
     } else {

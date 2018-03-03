@@ -7,7 +7,8 @@
           content="width=device-width, initial-scale=1.0, minimum-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <!-- 引入 Bootstrap -->
     <link rel="shortcut icon" href="favicon.ico" type="image/x-icon">
-    <link rel="stylesheet" href="css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdn.bootcss.com/bootstrap/3.3.7/css/bootstrap.min.css"
+          integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
     <link rel="stylesheet" href="css/bootstrap-switch.min.css">
     <link rel="stylesheet" href="css/luke.min.css">
 </head>
@@ -19,6 +20,7 @@
         </div>
         <div class="col-md-12" id="schedule">
             <h3 class="text-center"></h3>
+            <input type="search" class="pull-right" id="schedule_search">
             <table class="table table-bordered text-center">
                 <thead>
                 <tr>
@@ -62,6 +64,7 @@
         <div class="col-md-7 draggable" id="staff_list" style="margin-bottom: 100px;">
             <h3>团员列表
                 <div class="pull-right">
+                    <input type="search" id="staff_search">
                     <button type="button" class="btn btn-info btn-sm"
                             id="staff_list_move_handle"><span
                             class="glyphicon glyphicon-move"></span>
@@ -189,19 +192,28 @@
             </div><!-- /.modal-content -->
         </div><!-- /.modal -->
     </div>
-    <div class="modal fade" id="modal_authorize" tabindex="-1" role="dialog" data-backdrop="static" data-keyboard="false" data-show="true">
+    <div class="modal fade" id="modal_authorize" tabindex="-1" role="dialog" data-backdrop="static"
+         data-keyboard="false" data-show="true">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
                     <h4 class="modal-title">授权码</h4>
                 </div>
                 <div class="modal-body">
-                    <input type="text" class="form-control" id="modal_authorize_input" placeholder="请输入您分配的授权码">
+                    <div class="input-group">
+                        <input type="text" class="form-control" id="modal_authorize_input" placeholder="请输入您分配的授权码">
+                        <span class="input-group-btn">
+                            <button class="btn btn-success" type="button" onclick="checkAuth();">&#10004;</button>
+                        </span>
+                    </div><!-- /input-group -->
                     <span id="helpBlock" class="help-block" style="color: #a94442;"></span>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-warning pull-left" data-dismiss="modal">体验（所做修改不会保存）</button>
-                    <button type="button" class="btn btn-primary" onclick="authorize();">进入</button>
+                    <button type="button" class="btn btn-warning pull-left" onclick="experience();">体验（所做修改不会保存）
+                    </button>
+                    <button id="btn_auth_enter" type="button" class="btn btn-primary" onclick="authorize();" disabled>
+                        进入
+                    </button>
                 </div>
             </div><!-- /.modal-content -->
         </div><!-- /.modal -->
@@ -218,8 +230,13 @@
 
 
 <!-- 包括所有已编译的插件 -->
-<script src="node_modules/jquery/dist/jquery.min.js"></script>
-<script src="js/bootstrap.min.js"></script>
+<script src="https://cdn.bootcss.com/jquery/3.2.1/jquery.min.js"></script>
+<script src="https://cdn.bootcss.com/popper.js/1.12.9/umd/popper.min.js"
+        integrity="sha384-ApNbgh9B+Y1QKtv3Rn7W3mgPxhU9K/ScQsAP7hUibX39j7fakFPskvXusvfa0b4Q"
+        crossorigin="anonymous"></script>
+<script src="https://cdn.bootcss.com/bootstrap/3.3.7/js/bootstrap.min.js"
+        integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa"
+        crossorigin="anonymous"></script>
 <script src="js/bootstrap-switch.min.js"></script>
 <script src="https://cdn.bootcss.com/blueimp-md5/2.10.0/js/md5.js"></script>
 <script src="dist/js/luke.min.js"></script>
