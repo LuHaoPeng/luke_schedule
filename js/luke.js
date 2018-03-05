@@ -12,12 +12,13 @@ $(document).ready(function () {
         // init done
         // load local
         loadStaffList();
+        let $schedule = $("div#schedule");
         if (staticLocalJson.last_schedule !== "") {
-            $("div#schedule").html(staticLocalJson.last_schedule);
+            $schedule.html(staticLocalJson.last_schedule);
+            loadCheck();
         }
+        $schedule.children('h3').text(new Date().toLocaleDateString().replace(/\//g, '-'));
     });
-
-    $('div#schedule').children('h3').text(new Date().toLocaleDateString().replace(/\//g, '-'));
 
     // init popovers
     initPopovers();
@@ -210,10 +211,10 @@ function bindEvents() {
             "<tr>\n" +
             "    <th class=\"bg-success\">" + time[count] + "\n" +
             "        <span class=\"pull-right\">\n" +
-            "            <button type=\"button\" class=\"btn btn-info btn-xxs\" name=\"row-add\">\n" +
+            "            <button title=\"在该时间段末尾增加一个团\"  type=\"button\" class=\"btn btn-info btn-xxs\" name=\"row-add\">\n" +
             "                <span class=\"glyphicon glyphicon-plus\"></span>\n" +
             "            </button>\n" +
-            "            <button type=\"button\" class=\"btn btn-info btn-xxs\" name=\"row-delete\">\n" +
+            "            <button title=\"将该时间段末尾的团删去\" type=\"button\" class=\"btn btn-info btn-xxs\" name=\"row-delete\">\n" +
             "                <span class=\"glyphicon glyphicon-minus\"></span>\n" +
             "            </button>\n" +
             "        </span>\n" +
@@ -376,6 +377,22 @@ function loadNameList() {
     $name_select.append(new Option("称谓", "-1"));
     $.each(staticNameList, function (index, item) {
         $name_select.append(new Option(item, index));
+    });
+}
+
+/**
+ * check '.in-schedule' from schedule and check '.absence' from staff list
+ */
+function loadCheck() {
+    let $cell = $("div#schedule").find("tbody tr td");
+    let $staff = $("div#staff_list").children("div").find("button");
+    $cell.each(function () {
+        let $target = $staff.filter(":contains(" + $(this).text() + ")");
+        if ($target.hasClass("career-absence")) {
+            $cell.removeAttr("data-name").text("");
+        } else if (!$target.hasClass("in-schedule")) {
+            $target.addClass("in-schedule");
+        }
     });
 }
 
@@ -605,17 +622,26 @@ function bindDrawLine() {
         if (isDrop) {
             let staff = staticLocalJson.staff_list[staffId - 1];
             if (staff.id === staffId) {
+                let staff_out_text = $(this).text();
+                let $staff_list = $("div#staff_list");
+                // remove duplication
+                if (staff.name !== "空") {
+                    $("div#schedule").find("tbody tr td").filter(":contains(" + staff.name + staff.career + ")").removeAttr("data-name").text("");
+                }
                 // fill in the cell
-                $(this).attr({'data-name': staff.name}).text(staff.name + staff.career);
+                $(this).attr('data-name', staff.name).text(staff.name + staff.career);
                 // set staff to '.in-schedule'
-                // TODO consider REPLACE
-                let $staff_in = $("div#staff_list").find('button[data-id=' + staffId + ']');
-                if (!$staff_in.hasClass('in-schedule')) {
+                let $staff_in = $staff_list.find('button[data-id=' + staffId + ']');
+                if (!$staff_in.hasClass('in-schedule') && staff.name !== "空") {
                     $staff_in.addClass('in-schedule');
                     // hide
                     if ($("div#staff_list_filter").find('input[data-filter=4]').prop("checked") === false) {
                         $staff_in.hide();
                     }
+                }
+                // consider REPLACE
+                if (staff_out_text !== "" && staff_out_text !== "空") {
+                    $staff_list.find("button:contains(" + staff_out_text + ")").removeClass("in-schedule").show();
                 }
             } else {
                 // Error 60x:载入顺序与列表顺序不一致，需要手动查找定位（一般不会出现）
@@ -645,11 +671,13 @@ function markDuplicate(scale) {
             let map = {};
             $.each($td, function () {
                 let key = $(this).attr('data-name');
-                if (typeof map[key] === "undefined") {
-                    map[key] = 1;// first met
-                } else if (map[key] === 1) {
-                    $td.filter('[data-name=' + key + ']').css('color', 'red');
-                    map[key] = 2;// handled
+                if (key !== "空") {
+                    if (typeof map[key] === "undefined") {
+                        map[key] = 1;// first met
+                    } else if (map[key] === 1) {
+                        $td.filter('[data-name=' + key + ']').css('color', 'red');
+                        map[key] = 2;// handled
+                    }
                 }
             });
         } else {
