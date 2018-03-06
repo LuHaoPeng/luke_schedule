@@ -584,6 +584,7 @@ function bindDrawLine() {
     $('.line').css({width: document.body.scrollWidth, height: document.body.scrollHeight});
     // bind
     let staffId;
+    let index;
     let isDraw = false, isDrop = false;
     let $svg = $('svg');
     // pick staff
@@ -593,6 +594,7 @@ function bindDrawLine() {
         isDraw = true;
         // read staff id
         staffId = parseInt($(e.target).attr('data-id'));
+        index = parseInt($(e.target).index());
         // draw a line
         $svg.children('line').attr({x1: e.pageX, y1: e.pageY, x2: e.pageX, y2: e.pageY});
     });
@@ -620,7 +622,7 @@ function bindDrawLine() {
     // drop staff
     $('div#schedule').on('mouseover', 'table tr td', function () {
         if (isDrop) {
-            let staff = staticLocalJson.staff_list[staffId - 1];
+            let staff = staticLocalJson.staff_list[index];
             if (staff.id === staffId) {
                 let staff_out_text = $(this).text();
                 let $staff_list = $("div#staff_list");

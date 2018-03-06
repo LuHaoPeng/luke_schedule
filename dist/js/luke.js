@@ -563,6 +563,7 @@ function bindDrawLine() {
     $('.line').css({ width: document.body.scrollWidth, height: document.body.scrollHeight });
     // bind
     var staffId = void 0;
+    var index = void 0;
     var isDraw = false,
         isDrop = false;
     var $svg = $('svg');
@@ -573,6 +574,7 @@ function bindDrawLine() {
         isDraw = true;
         // read staff id
         staffId = parseInt($(e.target).attr('data-id'));
+        index = parseInt($(e.target).index());
         // draw a line
         $svg.children('line').attr({ x1: e.pageX, y1: e.pageY, x2: e.pageX, y2: e.pageY });
     });
@@ -600,7 +602,7 @@ function bindDrawLine() {
     // drop staff
     $('div#schedule').on('mouseover', 'table tr td', function () {
         if (isDrop) {
-            var staff = staticLocalJson.staff_list[staffId - 1];
+            var staff = staticLocalJson.staff_list[index];
             if (staff.id === staffId) {
                 var staff_out_text = $(this).text();
                 var $staff_list = $("div#staff_list");
