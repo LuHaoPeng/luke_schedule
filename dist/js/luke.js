@@ -5,10 +5,10 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 var staticLocalJson = {
     "staff_auto_increment": 0,
     "staff_list": [],
-    "last_schedule": "",
     "auth_pre": "",
     "auth_fun": ""
 };
+var staticLocalChart = null;
 var staticNameList = [];
 $(document).ready(function () {
     init(function () {
@@ -16,8 +16,8 @@ $(document).ready(function () {
         // load local
         loadStaffList();
         var $schedule = $("div#schedule");
-        if (staticLocalJson.last_schedule !== "") {
-            $schedule.html(staticLocalJson.last_schedule);
+        if (staticLocalChart !== null && staticLocalChart !== "") {
+            $schedule.html(staticLocalChart);
             loadCheck();
         }
         $schedule.children('h3').text(new Date().toLocaleDateString().replace(/\//g, '-'));
@@ -65,12 +65,23 @@ $(document).ready(function () {
  * @param callback called on completion
  */
 function init(callback) {
+    var count = 0;
     $.getJSON("data/luke_config.json", function (data) {
         if (data == null) {
             return;
         }
         staticLocalJson = data;
-    }).done(callback);
+    }).done(function () {
+        if (++count === 2) callback();
+    });
+    $.get("data/chart.txt", function (data) {
+        if (data == null) {
+            return;
+        }
+        staticLocalChart = data;
+    }).done(function () {
+        if (++count === 2) callback();
+    });
 }
 
 /**
@@ -263,6 +274,7 @@ function authorize() {
         sessionStorage.authorized = "fundamental";
     } else {
         sessionStorage.authorized = "none";
+        $("span#helpBlock").text('授权码不对，无保存权限，请联系小明');
         return;
     }
     $("div#modal_authorize").modal('hide');
@@ -338,6 +350,7 @@ function loadStaffList() {
         }
         $staff_list.append(elementNode);
     });
+    resizeSVG();
     loadNameList();
 }
 
@@ -360,12 +373,18 @@ function loadCheck() {
     var $cell = $("div#schedule").find("tbody tr td");
     var $staff = $("div#staff_list").children("div").find("button");
     $cell.each(function () {
+        var text = $(this).text();
+        if (text === null || text === "" || text === "空") return;
         var $target = $staff.filter(":contains(" + $(this).text() + ")");
-        if ($target.hasClass("career-absence")) {
-            $cell.removeAttr("data-name").text("");
-        } else if (!$target.hasClass("in-schedule")) {
-            $target.addClass("in-schedule");
-        }
+        $target.each(function () {
+            if ($(this).text() === text) {
+                if ($target.hasClass("career-absence")) {
+                    $cell.removeAttr("data-name").text("");
+                } else if (!$target.hasClass("in-schedule")) {
+                    $target.addClass("in-schedule");
+                }
+            }
+        });
     });
 }
 
@@ -499,11 +518,18 @@ function saveToLocal() {
     // premium -----
     // save schedule to local
     if (sessionStorage.authorized === "premium") {
-        staticLocalJson.last_schedule = $("div#schedule").html();
+        $.ajax({
+            method: 'post',
+            url: 'php/saveChart.php',
+            async: false, // important
+            data: {
+                'toStore': $("div#schedule").html()
+            }
+        });
     }
     // fundamental -----
     // save json
-    if (sessionStorage.authorized === "fundamental") {
+    if (sessionStorage.authorized === "fundamental" || sessionStorage.authorized === "premium") {
         var dataToStore = JSON.stringify(staticLocalJson, null, 4);
         $.ajax({
             method: 'post',
@@ -512,8 +538,6 @@ function saveToLocal() {
             data: {
                 'toStore': dataToStore
             }
-        }).done(function (data) {
-            console.log(data + ' characters saved');
         });
     }
 }
@@ -608,7 +632,13 @@ function bindDrawLine() {
                 var $staff_list = $("div#staff_list");
                 // remove duplication
                 if (staff.name !== "空") {
-                    $("div#schedule").find("tbody tr td").filter(":contains(" + staff.name + staff.career + ")").removeAttr("data-name").text("");
+                    var text = staff.name + staff.career;
+                    var $contain = $("div#schedule").find("tbody tr td").filter(":contains(" + text + ")");
+                    $contain.each(function () {
+                        if ($(this).text() === text) {
+                            $(this).removeAttr("data-name").text("");
+                        }
+                    });
                 }
                 // fill in the cell
                 $(this).attr('data-name', staff.name).text(staff.name + staff.career);
@@ -623,7 +653,12 @@ function bindDrawLine() {
                 }
                 // consider REPLACE
                 if (staff_out_text !== "" && staff_out_text !== "空") {
-                    $staff_list.find("button:contains(" + staff_out_text + ")").removeClass("in-schedule").show();
+                    var _$contain = $staff_list.find("button:contains(" + staff_out_text + ")");
+                    _$contain.each(function () {
+                        if ($(this).text() === staff_out_text) {
+                            $(this).removeClass("in-schedule").show();
+                        }
+                    });
                 }
             } else {
                 // Error 60x:载入顺序与列表顺序不一致，需要手动查找定位（一般不会出现）
