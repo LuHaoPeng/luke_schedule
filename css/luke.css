@@ -96,6 +96,7 @@ input[type=search]:focus {
 /*定位染色*/
 .career-absence {
     background-color: #adadad !important;
+    color: #fff !important;
 }
 
 .career-c {

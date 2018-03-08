@@ -21,10 +21,18 @@ $(document).ready(function () {
             loadCheck();
         }
         $schedule.children('h3').text(new Date().toLocaleDateString().replace(/\//g, '-'));
-    });
+        // init popovers
+        initPopovers();
+        // bind events
+        bindEvents();
+        // bind draw line
+        bindDrawLine();
 
-    // init popovers
-    initPopovers();
+        // show modal authorize
+        if (typeof sessionStorage.authorized === "undefined") {
+            $("div#modal_authorize").modal('show');
+        }
+    });
 
     // init switch
     $("input#edit_lock").bootstrapSwitch({
@@ -45,19 +53,8 @@ $(document).ready(function () {
         }
     });
 
-    // bind events
-    bindEvents();
-
-    // bind draw line
-    bindDrawLine();
-
     // make draggable
     makeDraggable($('div#staff_list'), $("button#staff_list_move_handle"));
-
-    // show modal authorize
-    if (typeof sessionStorage.authorized === "undefined") {
-        $("div#modal_authorize").modal('show');
-    }
 });
 
 /**
@@ -126,31 +123,11 @@ function bindEvents() {
     window.onbeforeunload = saveToLocal;
 
     // filter staff
-    $("div#staff_list_filter").find("input[name='options']").on('change', function () {
-        var type = $(this).attr("data-filter");
-        var className = void 0;
-        if (type === '1') {
-            className = '.career-c';
-        } else if (type === '2') {
-            className = '.career-assist';
-        } else if (type === '3') {
-            className = '.career-priest';
-        } else if (type === '4') {
-            className = '.in-schedule';
-        } else if (type === '5') {
-            className = '.career-absence';
-        }
-        if ($(this).parent().hasClass('active')) {
-            // show
-            $("div#staff_list").find(className).show();
-        } else {
-            // hide
-            $("div#staff_list").find(className).hide();
-        }
-    });
+    $("div#staff_list_filter").find("input[name='options']").on('change', filterStaff);
 
     // search
-    $("input#staff_search").on('change', function () {
+    $("input#staff_search").on('change keydown', function (e) {
+        if (e.type === "keydown" && e.keyCode !== 13) return;
         var $list = $("div#staff_list").children("div").children("button");
         var key = $(this).val();
         if (key === "") {
@@ -159,7 +136,8 @@ function bindEvents() {
             $list.hide().filter(":contains(" + key + ")").show();
         }
     });
-    $("input#schedule_search").on('change', function () {
+    $("input#schedule_search").on('change keydown', function (e) {
+        if (e.type === "keydown" && e.keyCode !== 13) return;
         var $cell = $("div#schedule").find("tbody tr td");
         var key = $(this).val();
         if (key === "") {
@@ -228,6 +206,15 @@ function bindEvents() {
         if (count <= 1) return; // min support 1 chart
         $table.eq(count - 1).remove();
         resizeSVG();
+    });
+
+    // export
+    $("button#export_btn").on("click", function () {
+        console.log("export");
+        html2canvas($("div#schedule").get(0)).then(function (canvas) {
+            $("img#screen_shot_img").attr("src", canvas.toDataURL());
+        });
+        $("div#modal_img").modal("show");
     });
 }
 
@@ -375,16 +362,34 @@ function loadCheck() {
     $cell.each(function () {
         var text = $(this).text();
         if (text === null || text === "" || text === "空") return;
-        var $target = $staff.filter(":contains(" + $(this).text() + ")");
+        var $target = $staff.filter(":contains(" + text + ")");
         $target.each(function () {
             if ($(this).text() === text) {
-                if ($target.hasClass("career-absence")) {
+                if ($(this).hasClass("career-absence")) {
                     $cell.removeAttr("data-name").text("");
-                } else if (!$target.hasClass("in-schedule")) {
-                    $target.addClass("in-schedule");
+                } else if (!$(this).hasClass("in-schedule")) {
+                    $(this).addClass("in-schedule");
                 }
             }
         });
+    });
+}
+
+/**
+ * filter staff list according to the checkboxes
+ */
+function filterStaff() {
+    var filterConditions = [".career-c", ".career-assist", ".career-priest", ".in-schedule", ".career-absence"];
+
+    var $filterInputs = $("div#staff_list_filter").find("input");
+    $filterInputs.each(function () {
+        var index = parseInt($(this).attr("data-filter"));
+        if ($(this).parent().hasClass('active')) {
+            $("div#staff_list").find(filterConditions[index - 1]).show();
+        } else {
+            // hide
+            $("div#staff_list").find(filterConditions[index - 1]).hide();
+        }
     });
 }
 
@@ -412,7 +417,8 @@ function addStaff() {
  * and reload the name select widget
  */
 function addName() {
-    var name = $("input#modal_add_name_input").val().trim();
+    var $input = $("input#modal_add_name_input");
+    var name = $input.val().trim();
     var $modal = $("div#modal_add_name");
     if (name === null || name === '') {
         $modal.modal('hide');
@@ -422,6 +428,7 @@ function addName() {
     loadNameList();
     $("select#staff_attr_name_select").val(staticNameList.length - 1);
     $modal.modal('hide');
+    $input.val('');
 }
 
 /**
@@ -637,6 +644,7 @@ function bindDrawLine() {
                     $contain.each(function () {
                         if ($(this).text() === text) {
                             $(this).removeAttr("data-name").text("");
+                            markDuplicate(false, $(this));
                         }
                     });
                 }
