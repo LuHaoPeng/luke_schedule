@@ -588,16 +588,22 @@ function resizeSVG() {
 /**
  * when drag event happening on a staff button, draw a line from start to end
  * if the dragging ends within the schedule chart, fill the cell with the staff
+ *
+ * add support for exchanging staffs in the schedule
  */
 function bindDrawLine() {
     // reinitialize svg width & height
     $('.line').css({ width: document.body.scrollWidth, height: document.body.scrollHeight });
     // bind
+    var isDraw = false,
+        isDrop = false,
+        isExchange = false;
+    var $svg = $('svg');
+    // button
     var staffId = void 0;
     var index = void 0;
-    var isDraw = false,
-        isDrop = false;
-    var $svg = $('svg');
+    // table
+    var $td = void 0;
     // pick staff
     var $buttons = $("div#staff_list").children('div');
     $buttons.on('mousedown', 'button', function (e) {
@@ -606,6 +612,17 @@ function bindDrawLine() {
         // read staff id
         staffId = parseInt($(e.target).attr('data-id'));
         index = parseInt($(e.target).index());
+        // draw a line
+        $svg.children('line').attr({ x1: e.pageX, y1: e.pageY, x2: e.pageX, y2: e.pageY });
+    });
+    var $schedule = $("div#schedule");
+    $schedule.on("mousedown", "table tr td", function (e) {
+        // unlock drawing
+        isDraw = true;
+        // exchange flag
+        isExchange = true;
+        // read staff
+        $td = $(e.target);
         // draw a line
         $svg.children('line').attr({ x1: e.pageX, y1: e.pageY, x2: e.pageX, y2: e.pageY });
     });
@@ -631,8 +648,26 @@ function bindDrawLine() {
         }
     });
     // drop staff
-    $('div#schedule').on('mouseover', 'table tr td', function () {
+    $schedule.on('mouseover', 'table tr td', function () {
         if (isDrop) {
+            if (isExchange) {
+                // exchange
+                var staff_name = $td.attr("data-name");
+                var staff_text = $td.text();
+                var $target = $(this);
+                var this_name = $target.attr("data-name");
+                var this_text = $target.text();
+                $td.attr("data-name", !this_name ? "" : this_name);
+                $td.text(!this_text ? "" : this_text);
+                $target.attr("data-name", !staff_name ? "" : staff_name);
+                $target.text(!staff_text ? "" : staff_text);
+                // reset
+                isExchange = false;
+                // mark duplication
+                markDuplicate(false, $td);
+                markDuplicate(false, $target);
+                return;
+            }
             var staff = staticLocalJson.staff_list[index];
             if (staff.id === staffId) {
                 var staff_out_text = $(this).text();
@@ -694,7 +729,7 @@ function markDuplicate(scale) {
             var map = {};
             $.each($td, function () {
                 var key = $(this).attr('data-name');
-                if (key !== "空") {
+                if (key !== "空" && !!key) {
                     if (typeof map[key] === "undefined") {
                         map[key] = 1; // first met
                     } else if (map[key] === 1) {

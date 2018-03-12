@@ -7,6 +7,14 @@ table tr th:nth-child(3) {
     background-color: #E8E8E8;
 }
 
+table tbody tr td {
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    user-select: none;
+
+    cursor: default;
+}
+
 table {
     table-layout: fixed;
     word-break: break-all;
@@ -109,6 +117,10 @@ input[type=search]:focus {
 
 .career-priest {
     background-color: #dff0d8;
+}
+
+button#staff_list_move_handle {
+    cursor: move;
 }
 
 /*svg line*/
