@@ -10,6 +10,7 @@
     <link rel="stylesheet" href="https://cdn.bootcss.com/bootstrap/3.3.7/css/bootstrap.min.css"
           integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
     <link rel="stylesheet" href="css/bootstrap-switch.min.css">
+    <link rel="stylesheet" href="css/jquery.toast.min.css">
     <link rel="stylesheet" href="css/luke.min.css">
 </head>
 <body>
@@ -18,16 +19,20 @@
         <div class="page-header">
             <h2>卢克排表工具
                 <span class="pull-right">
+                    <button title="保存排表" type="button" class="btn btn-info btn-sm" id="schedule_save_btn"
+                            onclick="saveSchedule();">
+                        <span class="glyphicon glyphicon-floppy-save"></span>
+                    </button>
                     <button title="导出截图" type="button" class="btn btn-info btn-sm" id="export_btn">
                         <span class="glyphicon glyphicon-export"></span>
                     </button>
-                    <input type="checkbox" id="edit_lock">
+                    <input type="checkbox" id="edit_lock" autocomplete="off">
                 </span>
             </h2>
         </div>
         <div class="col-md-12" id="schedule">
             <h3 class="text-center"></h3>
-            <input title="在排表区查找对象" type="search" class="pull-right" id="schedule_search">
+            <input title="在排表区查找对象" type="search" class="pull-right" id="schedule_search" autocomplete="off">
             <table class="table table-bordered text-center">
                 <thead>
                 <tr>
@@ -71,7 +76,7 @@
         <div class="col-md-7 draggable" id="staff_list" style="margin-bottom: 100px;">
             <h3>团员列表
                 <div class="pull-right">
-                    <input title="在团员区查找对象" type="search" id="staff_search">
+                    <input title="在团员区查找对象" type="search" id="staff_search" autocomplete="off">
                     <button title="按住拖拽团员区" type="button" class="btn btn-info btn-sm"
                             id="staff_list_move_handle"><span
                             class="glyphicon glyphicon-move"></span>
@@ -90,12 +95,11 @@
                         <label class="btn btn-default active">
                             <input type="checkbox" name="options" data-filter="4" checked> 已排
                         </label>
-
                         <label class="btn btn-default active">
                             <input type="checkbox" name="options" data-filter="5" checked> 请假
                         </label>
                     </div>
-                    <button title="新增一个空白团员" type="button" class="btn btn-success btn-sm" id="staff_list_add_btn">
+                    <button type="button" class="btn btn-success btn-sm" id="staff_list_add_btn">
                         <span class="glyphicon glyphicon-plus-sign"></span> 添加
                     </button>
                 </div>
@@ -107,10 +111,10 @@
              data-id="-1">
             <h3>团员属性
                 <div class="pull-right">
-                    <button title="保存所选团员的属性" type="button" class="btn btn-info btn-sm" id="staff_attr_save_btn">
+                    <button type="button" class="btn btn-info btn-sm" id="staff_attr_save_btn">
                         <span class="glyphicon glyphicon-floppy-save"></span> 保存
                     </button>
-                    <button title="删除所选的团员" type="button" class="btn btn-danger btn-sm" id="staff_attr_del_btn">
+                    <button type="button" class="btn btn-danger btn-sm" id="staff_attr_del_btn">
                         <span class="glyphicon glyphicon-minus-sign"></span> 删除
                     </button>
                 </div>
@@ -125,7 +129,7 @@
                 </div>
                 <div class="input-group">
                     <span class="input-group-addon">职业</span>
-                    <input title="建议3个字以内的职业简称" id="staff_attr_career_input" type="text" class="form-control"
+                    <input title="建议3个字以内的职业简称" id="staff_attr_career_input" autocomplete="off" type="text" class="form-control"
                            style="width: 80px;">
                 </div>
                 <select id="staff_attr_type_select" class="form-control">
@@ -194,7 +198,7 @@
                     <h4 class="modal-title">添加称谓</h4>
                 </div>
                 <div class="modal-body">
-                    <input type="text" class="form-control" id="modal_add_name_input" placeholder="输入称谓，建议3个字以内">
+                    <input type="text" class="form-control" id="modal_add_name_input" autocomplete="off" placeholder="输入称谓，建议3个字以内">
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-default" data-dismiss="modal">关闭</button>
@@ -212,7 +216,7 @@
                 </div>
                 <div class="modal-body">
                     <div class="input-group">
-                        <input type="text" class="form-control" id="modal_authorize_input" placeholder="请输入您分配的授权码">
+                        <input type="text" class="form-control" id="modal_authorize_input" autocomplete="off" placeholder="请输入您分配的授权码">
                         <span class="input-group-btn">
                             <button class="btn btn-success" type="button" onclick="checkAuth();">&#10004;</button>
                         </span>
@@ -260,9 +264,10 @@
 <script src="https://cdn.bootcss.com/bootstrap/3.3.7/js/bootstrap.min.js"
         integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa"
         crossorigin="anonymous"></script>
+<script src="https://cdn.bootcss.com/blueimp-md5/2.10.0/js/md5.js"></script>
 <script src="js/bootstrap-switch.min.js"></script>
 <script src="js/html2canvas.min.js"></script>
-<script src="https://cdn.bootcss.com/blueimp-md5/2.10.0/js/md5.js"></script>
+<script src="js/jquery.toast.min.js"></script>
 <script src="dist/js/luke.min.js"></script>
 </body>
 </html>

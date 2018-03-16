@@ -117,7 +117,11 @@ function bindEvents() {
     });
 
     // save data on leaving
-    window.onbeforeunload = saveToLocal;
+    window.onbeforeunload = function () {
+        if (sessionStorage.authorized && sessionStorage.authorized !== "none") {
+            return "未手动保存的内容将会丢失";
+        }
+    };
 
     // filter staff
     $("div#staff_list_filter").find("input[name='options']").on('change', filterStaff);
@@ -126,7 +130,7 @@ function bindEvents() {
     $("input#staff_search").on('change keydown', function (e) {
         if (e.type === "keydown" && e.keyCode !== 13) return;
         let $list = $("div#staff_list").children("div").children("button");
-        let key = $(this).val();
+        let key = $(this).val().trim();
         if (key === "") {
             $list.show();
         } else {
@@ -136,7 +140,7 @@ function bindEvents() {
     $("input#schedule_search").on('change keydown', function (e) {
         if (e.type === "keydown" && e.keyCode !== 13) return;
         let $cell = $("div#schedule").find("tbody tr td");
-        let key = $(this).val();
+        let key = $(this).val().trim();
         if (key === "") {
             $cell.removeClass("schedule-search-result");
         } else {
@@ -390,10 +394,11 @@ function loadCheck() {
         let text = $(this).text();
         if (text === null || text === "" || text === "空") return;
         let $target = $staff.filter(":contains(" + text + ")");
+        let $current = $(this);
         $target.each(function () {
             if ($(this).text() === text) {
                 if ($(this).hasClass("career-absence")) {
-                    $cell.removeAttr("data-name").text("");
+                    $current.removeAttr("data-name").text("");
                 } else if (!$(this).hasClass("in-schedule")) {
                     $(this).addClass("in-schedule");
                 }
@@ -508,6 +513,8 @@ function saveStaff() {
     if (staff.absence) {
         $staff_btn.addClass("career-absence");
     }
+    // submit changes
+    saveToLocal();
 }
 
 /**
@@ -535,38 +542,63 @@ function deleteStaff() {
         // Error 60x:载入顺序与列表顺序不一致，需要手动查找定位（一般不会出现）
         alert("错误代码602，请告知小明");
     }
+    // submit changes
+    saveToLocal();
 }
 
 /**
- * save all changes to local .json file
+ * save json changes to local .json file
  */
 function saveToLocal() {
-    if (sessionStorage.authorized === null || sessionStorage.authorized === "none") {
-        return;
-    }
-    // premium -----
-    // save schedule to local
-    if (sessionStorage.authorized === "premium") {
-        $.ajax({
-            method: 'post',
-            url: 'php/saveChart.php',
-            async: false,// important
-            data: {
-                'toStore': $("div#schedule").html()
-            }
-        });
-    }
     // fundamental -----
     // save json
     if (sessionStorage.authorized === "fundamental" || sessionStorage.authorized === "premium") {
         let dataToStore = JSON.stringify(staticLocalJson, null, 4);
-        $.ajax({
-            method: 'post',
-            url: 'php/saveJSON.php',
-            async: false,// important
-            data: {
-                'toStore': dataToStore
+        $.post("php/saveJSON.php", {'toStore': dataToStore}, function (data, status) {
+            if (status === "success") {
+                // success message
+                $.toast({
+                    text: "保存成功",
+                    showHideTransition: 'fade',
+                    icon: "success"
+                });
             }
+        });
+    } else {
+        // alert NO AUTH
+        $.toast({
+            heading: "无此权限",
+            text: "体验账号所做修改仅限于页面，不会提交到服务器",
+            showHideTransition: 'fade',
+            icon: "error"
+        });
+    }
+}
+
+/**
+ * premium auth. save schedule changes to local chart.txt file
+ */
+function saveSchedule() {
+    // premium -----
+    // save schedule to local
+    if (sessionStorage.authorized === "premium") {
+        $.post("php/saveChart.php", {'toStore': $("div#schedule").html()}, function (data, status) {
+            if (status === "success") {
+                // success message
+                $.toast({
+                    text: "保存成功",
+                    showHideTransition: 'fade',
+                    icon: "success"
+                });
+            }
+        });
+    } else {
+        // alert NO AUTH
+        $.toast({
+            heading: "无此权限",
+            text: "只有团长权限可以保存排表",
+            showHideTransition: 'fade',
+            icon: "error"
         });
     }
 }
