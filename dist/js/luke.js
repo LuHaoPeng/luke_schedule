@@ -2,25 +2,13 @@
 
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
 
-var staticLocalJson = {
-    "staff_auto_increment": 0,
-    "staff_list": [],
-    "auth_pre": "",
-    "auth_fun": ""
-};
-var staticLocalChart = null;
+var staticLocalStaffList = null;
+var timeTable = ['20:00', '20:30', '21:00', '21:30', '22:00', '22:30', '23:00', '23:30', '0:00', '0:30'];
 var staticNameList = [];
+var scheduleHistoryHtml = "";
+
 $(document).ready(function () {
     init(function () {
-        // init done
-        // load local
-        loadStaffList();
-        var $schedule = $("div#schedule");
-        if (staticLocalChart !== null && staticLocalChart !== "") {
-            $schedule.html(staticLocalChart);
-            loadCheck();
-        }
-        $schedule.children('h3').text(new Date().toLocaleDateString().replace(/\//g, '-'));
         // init popovers
         initPopovers();
         // bind events
@@ -38,8 +26,8 @@ $(document).ready(function () {
     $("input#edit_lock").bootstrapSwitch({
         'state': false,
         'size': 'small',
-        'onText': "\u2714",
-        'offText': "\u2718",
+        'onText': '\u2714',
+        'offText': '\u2718',
         'onSwitchChange': function onSwitchChange() {
             var state = $("input#edit_lock").bootstrapSwitch('state');
             var $chart = $('div#schedule');
@@ -58,27 +46,226 @@ $(document).ready(function () {
 });
 
 /**
- * load local config file
+ * request data from server
  * @param callback called on completion
  */
 function init(callback) {
-    var count = 0;
-    $.getJSON("data/luke_config.json", function (data) {
-        if (data == null) {
-            return;
-        }
-        staticLocalJson = data;
-    }).done(function () {
-        if (++count === 2) callback();
+    $("div#schedule").children('h3').text(new Date().toLocaleDateString().replace(/\//g, '-'));
+    // load from server
+    requestStaff(function () {
+        requestSchedule(null, callback);
     });
-    $.get("data/chart.txt", function (data) {
-        if (data == null) {
-            return;
+    requestScheduleList();
+}
+
+/**
+ * request staff list from server
+ * @param callback called on completion
+ */
+function requestStaff(callback) {
+    $.post("php/StaffList.php", function (data, status) {
+        if (status === "success") {
+            var json = JSON.parse(data);
+            if (json.code === 0) {
+                // local list
+                staticLocalStaffList = json.data.staff_real;
+                // load staff
+                loadStaffList(json.data.staff_in_order);
+                // toast when not on load
+                if (callback == null) {
+                    $.toast({
+                        text: "已获取最新团员列表",
+                        showHideTransition: 'fade',
+                        icon: "info"
+                    });
+                }
+            } else {
+                // alert error
+                $.toast({
+                    heading: "error",
+                    text: json.msg,
+                    showHideTransition: 'fade',
+                    icon: "error"
+                });
+            }
+            // callback
+            if (callback !== null && typeof callback === "function") {
+                callback();
+            }
+        } else {
+            // alert fail
+            $.toast({
+                heading: "获取团员列表失败",
+                text: "请稍后尝试刷新页面",
+                showHideTransition: 'fade',
+                icon: "error",
+                hideAfter: false
+            });
         }
-        staticLocalChart = data;
-    }).done(function () {
-        if (++count === 2) callback();
     });
+}
+
+/**
+ * if id is not null, request corresponding schedule; else request the newest
+ * @param id id of schedule
+ * @param callback called on completion
+ */
+function requestSchedule(id, callback) {
+    $.post("php/ScheduleSL.php", {
+        "method": "load",
+        "id": id
+    }, function (data, status) {
+        if (status === "success") {
+            var json = JSON.parse(data);
+            if (json.code === 0) {
+                // construct chart
+                if (json.data) {
+                    constructChart(json.data.datatime, json.data.content);
+                    // load check
+                    loadCheck();
+                }
+                // toast when not on load
+                if (callback == null) {
+                    $.toast({
+                        text: "排表载入完成",
+                        showHideTransition: 'fade',
+                        icon: "info"
+                    });
+                }
+            } else {
+                // alert error
+                $.toast({
+                    heading: "error",
+                    text: json.msg,
+                    showHideTransition: 'fade',
+                    icon: "error"
+                });
+            }
+            // callback
+            if (callback !== null && typeof callback === "function") {
+                callback();
+            }
+        } else {
+            // alert fail
+            $.toast({
+                heading: "获取排表失败",
+                text: "请稍后尝试刷新页面",
+                showHideTransition: 'fade',
+                icon: "error",
+                hideAfter: false
+            });
+        }
+    });
+}
+
+/**
+ * request schedule list from server, and form it into html string
+ * @returns {string} html string
+ */
+function requestScheduleList() {
+    $.post("php/ScheduleList.php", function (data, status) {
+        if (status === "success") {
+            var json = JSON.parse(data);
+            if (json.code === 0) {
+                // construct chart
+                if (json.data) {
+                    // construct list
+                    var list = json.data;
+                    var contentHtml = "<ul>";
+                    list.forEach(function (item) {
+                        contentHtml += "<li><a class='schedule-history' data-id=\"" + item.id + "\">" + item.datatime.substr(0, 10) + "</a></li>";
+                    });
+                    contentHtml += "</ul>";
+                    scheduleHistoryHtml = contentHtml;
+                } else {
+                    // no data
+                    scheduleHistoryHtml = "暂无排表历史";
+                }
+            } else {
+                scheduleHistoryHtml = "暂无排表历史";
+                // alert error
+                $.toast({
+                    heading: "error",
+                    text: json.msg,
+                    showHideTransition: 'fade',
+                    icon: "error"
+                });
+            }
+        } else {
+            scheduleHistoryHtml = "暂无排表历史";
+            // alert fail
+            $.toast({
+                heading: "获取排表历史失败",
+                text: "请稍后尝试刷新页面",
+                showHideTransition: 'fade',
+                icon: "error",
+                hideAfter: false
+            });
+        }
+    });
+}
+
+/**
+ * construct chart
+ * @param time chart data time
+ * @param arrayParam array of the whole chart
+ * @returns {boolean} false if chartArray is in wrong format
+ */
+function constructChart(time, arrayParam) {
+    var chartArray = JSON.parse(arrayParam.replace(/[\u4e00-\u9fa5\w]+/g, function (a) {
+        return '"' + a + '"';
+    }));
+    if (chartArray instanceof Array) {
+        // clear schedule
+        var $schedule = $("div#schedule");
+        $schedule.html("");
+        // add time and search box
+        $schedule.append('<h3 class="text-center">' + time.substr(0, 10) + '</h3>');
+        $schedule.append('<input title="在排表区查找对象" type="search" class="pull-right" id="schedule_search" autocomplete="off">');
+        var tableHtml = '';
+        // chartArray is the whole schedule
+        chartArray.forEach(function (periodArray, indexPeriod) {
+            if (periodArray instanceof Array) {
+                // periodArray是一个时间段，对应table
+                tableHtml += '<table class="table table-bordered text-center"><thead><tr>\n' + ' <th class="bg-success">' + timeTable[indexPeriod] + '\n' + '     <span class="pull-right" style="display: none;">\n' + '         <button title="在该时间段末尾增加一个团" type="button" class="btn btn-info btn-xxs" name="row-add">\n' + '             <span class="glyphicon glyphicon-plus"></span>\n' + '         </button>\n' + '         <button title="将该时间段末尾的团删去" type="button" class="btn btn-info btn-xxs" name="row-delete">\n' + '             <span class="glyphicon glyphicon-minus"></span>\n' + '         </button>\n' + '     </span>\n' + ' </th>\n' + ' <th class="text-center" colspan="4">光</th>\n' + ' <th class="text-center" colspan="4">暗</th>\n' + ' </tr></thead><tbody>';
+                periodArray.forEach(function (teamArray, indexTeam) {
+                    if (teamArray instanceof Array) {
+                        // teamArray是一个队，对应tr
+                        tableHtml += '<tr><th scope="row">' + String.fromCharCode(65 + indexTeam) + '</th>';
+                        teamArray.forEach(function (staffId) {
+                            staffId = parseInt(staffId);
+                            if (staffId === 0) {
+                                // add null td
+                                tableHtml += '<td></td>';
+                            } else {
+                                // staff是一个团员id，对应td
+                                var staff = staticLocalStaffList[staffId - 1];
+                                if (parseInt(staff.id) === staffId) {
+                                    tableHtml += '<td data-id="' + staff.id + '" data-name="' + staff.name + '">' + staff.name + staff.career + '</td>';
+                                } else {
+                                    // Error 60x:载入顺序与列表顺序不一致，需要手动查找定位（一般不会出现）
+                                    alert("错误代码604，请告知小明");
+                                }
+                            }
+                        });
+                        tableHtml += '</tr>';
+                    } else {
+                        // wrong format
+                        return false;
+                    }
+                });
+                tableHtml += '</tbody></table>';
+            } else {
+                // wrong format
+                return false;
+            }
+        });
+        $schedule.append(tableHtml);
+        $schedule.append('<div class="text-center" style="margin-bottom: 15px;display: none;">\n' + ' <button title="末尾增加一个时间段" type="button" class="btn btn-primary btn-sm" name="chart-add">\n' + '     <span class="glyphicon glyphicon-plus"></span>\n' + ' </button>\n' + ' <button title="删去末尾的时间段" type="button" class="btn btn-primary btn-sm" name="chart-delete">\n' + '     <span class="glyphicon glyphicon-minus"></span>\n' + ' </button></div>');
+    } else {
+        // wrong format
+        return false;
+    }
 }
 
 /**
@@ -108,23 +295,24 @@ function initPopovers() {
     }).on('click', deleteStaff).on('blur', function () {
         $(this).popover('hide');
     });
+
+    $("button#schedule_history_btn").popover({
+        content: scheduleHistoryHtml,
+        html: true,
+        placement: "bottom",
+        trigger: "focus"
+    });
 }
 
 /**
  * bind events
  */
 function bindEvents() {
+    var $schedule = $("div#schedule");
     // click on a staff button to read its attributes
     $("div#staff_list").children("div").on('click', 'button', function (e) {
-        readStaffAttributes(e, $(this).index());
+        readStaffAttributes(e);
     });
-
-    // save data on leaving
-    window.onbeforeunload = function () {
-        if (sessionStorage.authorized && sessionStorage.authorized !== "none") {
-            return "未手动保存的内容将会丢失";
-        }
-    };
 
     // filter staff
     $("div#staff_list_filter").find("input[name='options']").on('change', filterStaff);
@@ -140,7 +328,7 @@ function bindEvents() {
             $list.hide().filter(":contains(" + key + ")").show();
         }
     });
-    $("input#schedule_search").on('change keydown', function (e) {
+    $schedule.on('change keydown', "input#schedule_search", function (e) {
         if (e.type === "keydown" && e.keyCode !== 13) return;
         var $cell = $("div#schedule").find("tbody tr td");
         var key = $(this).val().trim();
@@ -165,7 +353,6 @@ function bindEvents() {
     $("input#modal_add_name_input").on('keydown', function (e) {
         if (e.keyCode === 13) {
             addName();
-            $(this).val('');
         }
     });
     $('div#modal_authorize').on('show.bs.modal', function () {
@@ -185,13 +372,11 @@ function bindEvents() {
     });
 
     // row/chart add&delete
-    var alphabet = ['A', 'B', 'C', 'D', 'E', 'F', 'G'];
-    var time = ['20:00', '20:30', '21:00', '21:30', '22:00', '22:30', '23:00', '23:30', '0:00', '0:30'];
-    $("div#schedule").on('click', "[name='row-add']", function () {
+    $schedule.on('click', "[name='row-add']", function () {
         var $table = $(this).parentsUntil('div#schedule').filter('table');
         var count = $table.find('tbody tr').length;
         if (count >= 7) return; // max support 7 rows per chart
-        $table.append('<tr><th scope="row">' + alphabet[count] + '队</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>');
+        $table.append('<tr><th scope="row">' + String.fromCharCode(65 + count) + '队</th><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>');
         resizeSVG();
     }).on('click', "[name='row-delete']", function () {
         var $tr = $(this).parentsUntil('div#schedule').filter('table').find('tbody tr');
@@ -202,7 +387,7 @@ function bindEvents() {
     }).on('click', "[name='chart-add']", function () {
         var count = $("div#schedule").children("table").length;
         if (count >= 10) return; // max support 10 charts
-        $("<table class=\"table table-bordered text-center\">\n" + "<thead>\n" + "<tr>\n" + "    <th class=\"bg-success\">" + time[count] + "\n" + "        <span class=\"pull-right\">\n" + "            <button title=\"在该时间段末尾增加一个团\"  type=\"button\" class=\"btn btn-info btn-xxs\" name=\"row-add\">\n" + "                <span class=\"glyphicon glyphicon-plus\"></span>\n" + "            </button>\n" + "            <button title=\"将该时间段末尾的团删去\" type=\"button\" class=\"btn btn-info btn-xxs\" name=\"row-delete\">\n" + "                <span class=\"glyphicon glyphicon-minus\"></span>\n" + "            </button>\n" + "        </span>\n" + "    </th>\n" + "    <th class=\"text-center\" colspan=\"4\">光</th>\n" + "    <th class=\"text-center\" colspan=\"4\">暗</th>\n" + "</tr>\n" + "</thead>\n" + "<tbody>\n" + "<tr>\n" + "    <th scope=\"row\">A队</th>\n" + "    <td></td>\n" + "    <td></td>\n" + "    <td></td>\n" + "    <td></td>\n" + "    <td></td>\n" + "    <td></td>\n" + "    <td></td>\n" + "    <td></td>\n" + "</tr>\n" + "</tbody>\n" + "</table>").insertBefore("div#schedule>div");
+        $("<table class=\"table table-bordered text-center\">\n" + "<thead>\n" + "<tr>\n" + "    <th class=\"bg-success\">" + timeTable[count] + "\n" + "        <span class=\"pull-right\">\n" + "            <button title=\"在该时间段末尾增加一个团\"  type=\"button\" class=\"btn btn-info btn-xxs\" name=\"row-add\">\n" + "                <span class=\"glyphicon glyphicon-plus\"></span>\n" + "            </button>\n" + "            <button title=\"将该时间段末尾的团删去\" type=\"button\" class=\"btn btn-info btn-xxs\" name=\"row-delete\">\n" + "                <span class=\"glyphicon glyphicon-minus\"></span>\n" + "            </button>\n" + "        </span>\n" + "    </th>\n" + "    <th class=\"text-center\" colspan=\"4\">光</th>\n" + "    <th class=\"text-center\" colspan=\"4\">暗</th>\n" + "</tr>\n" + "</thead>\n" + "<tbody>\n" + "<tr>\n" + "    <th scope=\"row\">A队</th>\n" + "    <td></td>\n" + "    <td></td>\n" + "    <td></td>\n" + "    <td></td>\n" + "    <td></td>\n" + "    <td></td>\n" + "    <td></td>\n" + "    <td></td>\n" + "</tr>\n" + "</tbody>\n" + "</table>").insertBefore("div#schedule>div");
         resizeSVG();
     }).on('click', "[name='chart-delete']", function () {
         var $table = $("div#schedule").children("table");
@@ -214,11 +399,16 @@ function bindEvents() {
 
     // export
     $("button#export_btn").on("click", function () {
-        console.log("export");
         html2canvas($("div#schedule").get(0)).then(function (canvas) {
             $("img#screen_shot_img").attr("src", canvas.toDataURL());
         });
         $("div#modal_img").modal("show");
+    });
+
+    // load schedule history
+    $(".page-header").on("click", "a.schedule-history", function () {
+        var id = $(this).attr("data-id");
+        requestSchedule(id, null);
     });
 }
 
@@ -226,99 +416,112 @@ function bindEvents() {
  * experience. have none access to save changes
  */
 function experience() {
-    sessionStorage.authorized = "none";
+    sessionStorage.authorized = "false";
     $("div#modal_authorize").modal('hide');
 }
 
 /**
- * check auth. `premium`: have all access. `fundamental`: access to save staff.
+ * check auth.
  */
 function checkAuth() {
     var code = $("input#modal_authorize_input").val().trim();
     var $enter = $("button#btn_auth_enter");
     // clear help block
     var $help = $("span#helpBlock");
-    var result = md5(code);
-    // check
-    if (result === staticLocalJson.auth_pre) {
-        $help.text('团长授权：可保存所有改动');
-        $enter.prop("disabled", false);
-    } else if (result === staticLocalJson.auth_fun) {
-        $help.text('团员授权：只可保存团员区改动');
-        $enter.prop("disabled", false);
-    } else {
-        $help.text('授权码不对，无保存权限，请联系小明');
-        $enter.prop("disabled", true);
-    }
+
+    $.post("php/AuthCheck.php", {
+        "auth": code
+    }, function (data, status) {
+        if (status === "success") {
+            // success message
+            var json = JSON.parse(data);
+            if (json.code === 0) {
+                // correct auth code
+                if (parseInt(json.data) === 1) {
+                    $help.html('<b>团员授权</b>：只可保存团员区改动');
+                    $enter.prop("disabled", false);
+                } else if (parseInt(json.data) === 2) {
+                    $help.html('<b>团长授权</b>：可保存所有改动');
+                    $enter.prop("disabled", false);
+                }
+            } else if (json.code === 2) {
+                // wrong auth code
+                $help.text('授权码不对，无保存权限，请联系小明');
+                $enter.prop("disabled", true);
+            } else {
+                $.toast({
+                    heading: "error",
+                    text: json.msg,
+                    showHideTransition: 'fade',
+                    icon: "error"
+                });
+            }
+        }
+    });
 }
 
 /**
  * authorize. set session authorization and enter.
  */
 function authorize() {
-    var code = $("input#modal_authorize_input").val().trim();
-    var result = md5(code);
-    // check
-    if (result === staticLocalJson.auth_pre) {
-        sessionStorage.authorized = "premium";
-    } else if (result === staticLocalJson.auth_fun) {
-        sessionStorage.authorized = "fundamental";
-    } else {
-        sessionStorage.authorized = "none";
-        $("span#helpBlock").text('授权码不对，无保存权限，请联系小明');
-        return;
-    }
+    sessionStorage.auth = $("input#modal_authorize_input").val().trim();
+    sessionStorage.authorized = "true";
     $("div#modal_authorize").modal('hide');
 }
 
 /**
  * when a staff button is clicked, load his attributes
  * @param e event object
- * @param i index of that button
  */
-function readStaffAttributes(e, i) {
+function readStaffAttributes(e) {
     var id = parseInt(e.target.getAttribute("data-id"));
     $("div#staff_attr_panel").attr("data-id", id);
     // new staff
-    if (id === staticLocalJson.staff_auto_increment) {
+    if (id === 0) {
         // reset attributes group
-        $("select#staff_attr_name_select").val(-1);
-        $("input#staff_attr_career_input").val("");
-        $("select#staff_attr_type_select").val(0);
-        $("input#staff_attr_absence_check").prop("checked", false);
-        $("div#staff_attr_other_attack").children("label").removeClass("active").eq(0).addClass("active");
-        $("div#staff_attr_other_control").children("label").removeClass("active").eq(0).addClass("active");
-        $("div#staff_attr_other_element").children("label").removeClass("active").eq(0).addClass("active");
+        resetStaffAttributesPanel();
         return;
     }
     // read local attributes
-    var list = staticLocalJson.staff_list;
-    if (list[i].id === id) {
+    var staff = staticLocalStaffList[id - 1];
+    if (parseInt(staff.id) === id) {
         // main attributes
-        var index_namelist = staticNameList.indexOf(list[i].name);
+        var index_namelist = staticNameList.indexOf(staff.name);
         $("select#staff_attr_name_select").val(index_namelist);
-        $("input#staff_attr_career_input").val(list[i].career);
-        $("select#staff_attr_type_select").val(list[i].type);
-        $("input#staff_attr_absence_check").prop("checked", list[i].absence);
+        $("input#staff_attr_career_input").val(staff.career);
+        $("select#staff_attr_type_select").val(staff.type);
+        $("input#staff_attr_absence_check").prop("checked", staff.absence === '1');
         // other attributes
-        $("div#staff_attr_other_attack").children("label").removeClass("active").eq(list[i].attack - 1).addClass("active");
-        $("div#staff_attr_other_control").children("label").removeClass("active").eq(list[i].control - 1).addClass("active");
-        $("div#staff_attr_other_element").children("label").removeClass("active").eq(list[i].element - 1).addClass("active");
+        $("div#staff_attr_other_attack").children("label").removeClass("active").eq(staff.attack - 1).addClass("active");
+        $("div#staff_attr_other_control").children("label").removeClass("active").eq(staff.control - 1).addClass("active");
+        $("div#staff_attr_other_element").children("label").removeClass("active").eq(staff.element - 1).addClass("active");
     } else {
-        console.log(i + ' ' + list[i].id + ' ' + id);
         // Error 60x:载入顺序与列表顺序不一致，需要手动查找定位（一般不会出现）
         alert("错误代码600，请告知小明");
     }
 }
 
 /**
+ * reset staff attributes panel
+ */
+function resetStaffAttributesPanel() {
+    $("select#staff_attr_name_select").val(-1);
+    $("input#staff_attr_career_input").val("");
+    $("select#staff_attr_type_select").val(0);
+    $("input#staff_attr_absence_check").prop("checked", false);
+    $("div#staff_attr_other_attack").children("label").removeClass("active").eq(0).addClass("active");
+    $("div#staff_attr_other_control").children("label").removeClass("active").eq(0).addClass("active");
+    $("div#staff_attr_other_element").children("label").removeClass("active").eq(0).addClass("active");
+}
+
+/**
  * load staff list on the left from local json
  */
-function loadStaffList() {
+function loadStaffList(staffList) {
     var $staff_list = $("div#staff_list").children("div");
     $staff_list.empty();
-    $.each(staticLocalJson.staff_list, function (index, item) {
-        // load name list
+    $.each(staffList, function (index, item) {
+        // add to nameList
         if (staticNameList.indexOf(item.name) === -1) {
             staticNameList.push(item.name);
         }
@@ -329,20 +532,21 @@ function loadStaffList() {
         elementNode.setAttribute("data-id", item.id);
         elementNode.className = "btn btn-default";
         elementNode.innerHTML = item.name + item.career;
-        if (item.type === 1) {
+        if (item.type === '1') {
             elementNode.className += " career-c";
-        } else if (item.type === 2) {
+        } else if (item.type === '2') {
             elementNode.className += " career-assist";
-        } else if (item.type === 3) {
+        } else if (item.type === '3') {
             elementNode.className += " career-priest";
         }
-        if (item.absence) {
+        if (item.absence === '1') {
             elementNode.className += " career-absence";
         }
         $staff_list.append(elementNode);
     });
     resizeSVG();
     loadNameList();
+    resetStaffAttributesPanel();
 }
 
 /**
@@ -363,6 +567,8 @@ function loadNameList() {
 function loadCheck() {
     var $cell = $("div#schedule").find("tbody tr td");
     var $staff = $("div#staff_list").children("div").find("button");
+    // reset in-schedule
+    $staff.removeClass("in-schedule");
     $cell.each(function () {
         var text = $(this).text();
         if (text === null || text === "" || text === "空") return;
@@ -371,7 +577,7 @@ function loadCheck() {
         $target.each(function () {
             if ($(this).text() === text) {
                 if ($(this).hasClass("career-absence")) {
-                    $current.removeAttr("data-name").text("");
+                    $current.removeAttr("data-id").removeAttr("data-name").text("");
                 } else if (!$(this).hasClass("in-schedule")) {
                     $(this).addClass("in-schedule");
                 }
@@ -386,12 +592,15 @@ function loadCheck() {
 function filterStaff() {
     var filterConditions = [".career-c", ".career-assist", ".career-priest", ".in-schedule", ".career-absence"];
 
+    var $staff_list = $("div#staff_list");
+    // show all
+    $staff_list.find("button[data-id]").show();
+
+    // filter hide
     var $filterInputs = $("div#staff_list_filter").find("input");
     $filterInputs.each(function () {
         var index = parseInt($(this).attr("data-filter"));
-        if ($(this).parent().hasClass('active')) {
-            $("div#staff_list").find(filterConditions[index - 1]).show();
-        } else {
+        if (!$(this).parent().hasClass('active')) {
             // hide
             $("div#staff_list").find(filterConditions[index - 1]).hide();
         }
@@ -403,7 +612,7 @@ function filterStaff() {
  */
 function addStaff() {
     var $btn_list = $("div#staff_list").children('div');
-    var increment = staticLocalJson.staff_auto_increment;
+    var increment = 0;
     var exist = $btn_list.children("button").is("[data-id=" + increment + "]");
     if (exist) {
         $("button#staff_list_add_btn").popover('show');
@@ -450,7 +659,9 @@ function saveStaff() {
         return;
     }
     // read staff
-    var staff = {
+    var data = {
+        "method": "save",
+        "auth": sessionStorage.auth,
         "id": id,
         "name": staticNameList[parseInt($("select#staff_attr_name_select").val())],
         "career": $("input#staff_attr_career_input").val().trim(),
@@ -460,37 +671,71 @@ function saveStaff() {
         "control": $("div#staff_attr_other_control").find('label.active').index() + 1,
         "element": $("div#staff_attr_other_element").find('label.active').index() + 1
     };
-    if (staff.id === staticLocalJson.staff_auto_increment) {
-        // new staff
-        // save to cache
-        staticLocalJson.staff_list.push(staff);
-        staticLocalJson.staff_auto_increment++;
-    } else {
-        // old staff
-        var index = $staff_btn.index();
-        if (staticLocalJson.staff_list[index].id === staff.id) {
-            staticLocalJson.staff_list[index] = staff;
-        } else {
-            // Error 60x:载入顺序与列表顺序不一致，需要手动查找定位（一般不会出现）
-            alert("错误代码601，请告知小明");
-        }
-    }
-    // refresh staff button
-    $staff_btn.text(staff.name + staff.career);
-    if (staff.type === 1) {
-        $staff_btn.attr("class", "btn btn-default career-c");
-    } else if (staff.type === 2) {
-        $staff_btn.attr("class", "btn btn-default career-assist");
-    } else if (staff.type === 3) {
-        $staff_btn.attr("class", "btn btn-default career-priest");
-    } else if (staff.type === 0) {
-        $staff_btn.attr("class", "btn btn-default");
-    }
-    if (staff.absence) {
-        $staff_btn.addClass("career-absence");
-    }
+
     // submit changes
-    saveToLocal();
+    if (sessionStorage.authorized === "true") {
+        $.post("php/StaffAttr.php", data, function (data, status) {
+            if (status === "success") {
+                // success message
+                var json = JSON.parse(data);
+                if (json.code === 0) {
+                    // reload staff list
+                    requestStaff(null);
+                    $.toast({
+                        text: "保存成功",
+                        showHideTransition: 'fade',
+                        icon: "success"
+                    });
+                } else if (json.code === 5) {
+                    // alert NO AUTH
+                    $.toast({
+                        heading: "权限不足",
+                        text: "需要团员以上权限才可操作，<a onclick='$(\"div#modal_authorize\").modal(\"show\");$(this).siblings(\".close-jq-toast-single\").click();'>重新登录</a>",
+                        showHideTransition: 'fade',
+                        hideAfter: false,
+                        icon: "warning"
+                    });
+                } else {
+                    $.toast({
+                        heading: "保存失败",
+                        text: json.msg,
+                        showHideTransition: 'fade',
+                        icon: "error"
+                    });
+                }
+            }
+        });
+    } else {
+        if (data.id === 0) {
+            // add to local json
+            data.id = Math.round(Math.random() * 100) + staticLocalStaffList.length;
+            staticLocalStaffList.push(data);
+            // refresh staff button
+            $staff_btn.attr("data-id", data.id);
+        }
+        $staff_btn.text(data.name + data.career);
+        if (data.type === 1) {
+            $staff_btn.attr("class", "btn btn-default career-c");
+        } else if (data.type === 2) {
+            $staff_btn.attr("class", "btn btn-default career-assist");
+        } else if (data.type === 3) {
+            $staff_btn.attr("class", "btn btn-default career-priest");
+        } else if (data.type === 0) {
+            $staff_btn.attr("class", "btn btn-default");
+        }
+        if (data.absence) {
+            $staff_btn.addClass("career-absence");
+        }
+
+        // alert NO AUTH
+        $.toast({
+            heading: "无此权限",
+            text: "体验账号所做修改仅限于页面，不会提交到服务器，<a onclick='$(\"div#modal_authorize\").modal(\"show\");$(this).siblings(\".close-jq-toast-single\").click();'>重新登录</a>",
+            showHideTransition: 'fade',
+            hideAfter: false,
+            icon: "warning"
+        });
+    }
 }
 
 /**
@@ -506,79 +751,191 @@ function deleteStaff() {
         return;
     }
 
-    var index = $staff_btn.index();
-    // delete btn
-    $staff_btn.remove();
-    if (staticLocalJson.staff_auto_increment === id) {
+    if (id === 0) {
         // newly added
+        $staff_btn.remove();
         return;
     }
-    // delete from static json
-    if (staticLocalJson.staff_list[index].id === id) {
-        staticLocalJson.staff_list.splice(index, 1);
-    } else {
-        // Error 60x:载入顺序与列表顺序不一致，需要手动查找定位（一般不会出现）
-        alert("错误代码602，请告知小明");
-    }
+    var textDeleted = $staff_btn.text();
     // submit changes
-    saveToLocal();
-}
-
-/**
- * save json changes to local .json file
- */
-function saveToLocal() {
-    // fundamental -----
-    // save json
-    if (sessionStorage.authorized === "fundamental" || sessionStorage.authorized === "premium") {
-        var dataToStore = JSON.stringify(staticLocalJson, null, 4);
-        $.post("php/saveJSON.php", { 'toStore': dataToStore }, function (data, status) {
+    if (sessionStorage.authorized === "true") {
+        $.post("php/StaffAttr.php", {
+            "method": "delete",
+            "id": id,
+            "auth": sessionStorage.auth
+        }, function (data, status) {
             if (status === "success") {
                 // success message
-                $.toast({
-                    text: "保存成功",
-                    showHideTransition: 'fade',
-                    icon: "success"
-                });
+                var json = JSON.parse(data);
+                if (json.code === 0) {
+                    // reload staff list
+                    requestStaff(null);
+                    $.toast({
+                        heading: "删除成功",
+                        text: "已删除<b>" + textDeleted + "</b>，<a onclick=\"undoDeleteStaff(" + id + ");$(this).siblings(\".close-jq-toast-single\").click();\">撤销删除</a>",
+                        showHideTransition: 'fade',
+                        hideAfter: false,
+                        icon: "success"
+                    });
+                } else if (json.code === 5) {
+                    // alert NO AUTH
+                    $.toast({
+                        heading: "权限不足",
+                        text: "需要团员以上权限才可操作，<a onclick='$(\"div#modal_authorize\").modal(\"show\");$(this).siblings(\".close-jq-toast-single\").click();'>重新登录</a>",
+                        showHideTransition: 'fade',
+                        hideAfter: false,
+                        icon: "warning"
+                    });
+                } else {
+                    $.toast({
+                        heading: "删除失败",
+                        text: json.msg,
+                        showHideTransition: 'fade',
+                        icon: "error"
+                    });
+                }
             }
         });
     } else {
+        $staff_btn.remove();
+        // delete from static json
+        if (parseInt(staticLocalStaffList[id - 1].id) === id) {
+            staticLocalStaffList.splice(id - 1, 1);
+        } else {
+            // Error 60x:载入顺序与列表顺序不一致，需要手动查找定位（一般不会出现）
+            alert("错误代码602，请告知小明");
+        }
         // alert NO AUTH
         $.toast({
             heading: "无此权限",
-            text: "体验账号所做修改仅限于页面，不会提交到服务器",
+            text: "体验账号所做修改仅限于页面，不会提交到服务器，<a onclick='$(\"div#modal_authorize\").modal(\"show\");$(this).siblings(\".close-jq-toast-single\").click();'>重新登录</a>",
             showHideTransition: 'fade',
-            icon: "error"
+            hideAfter: false,
+            icon: "warning"
         });
     }
+}
+
+/**
+ * recover the staff just deleted
+ * @param idDeleted id of the deleted staff
+ */
+function undoDeleteStaff(idDeleted) {
+    $.post("php/StaffAttr.php", {
+        "method": "undo",
+        "id": idDeleted,
+        "auth": sessionStorage.auth
+    }, function (data, status) {
+        if (status === "success") {
+            // success message
+            var json = JSON.parse(data);
+            if (json.code === 0) {
+                // reload staff list
+                requestStaff(null);
+                $.toast({
+                    text: "已恢复",
+                    showHideTransition: 'fade',
+                    icon: "info"
+                });
+            } else if (json.code === 5) {
+                // alert NO AUTH
+                $.toast({
+                    heading: "权限不足",
+                    text: "需要团员以上权限才可操作，<a onclick='$(\"div#modal_authorize\").modal(\"show\");$(this).siblings(\".close-jq-toast-single\").click();'>重新登录</a>",
+                    showHideTransition: 'fade',
+                    hideAfter: false,
+                    icon: "warning"
+                });
+            } else {
+                $.toast({
+                    heading: "恢复失败",
+                    text: json.msg,
+                    showHideTransition: 'fade',
+                    icon: "error"
+                });
+            }
+        }
+    });
 }
 
 /**
  * premium auth. save schedule changes to local chart.txt file
  */
 function saveSchedule() {
-    // premium -----
-    // save schedule to local
-    if (sessionStorage.authorized === "premium") {
-        $.post("php/saveChart.php", { 'toStore': $("div#schedule").html() }, function (data, status) {
+    // save schedule
+    if (sessionStorage.authorized === "true") {
+        var content = extractSchedule();
+        $.post("php/ScheduleSL.php", {
+            "method": "save",
+            "content": content,
+            "auth": sessionStorage.auth
+        }, function (data, status) {
             if (status === "success") {
                 // success message
-                $.toast({
-                    text: "保存成功",
-                    showHideTransition: 'fade',
-                    icon: "success"
-                });
+                var json = JSON.parse(data);
+                if (json.code === 0) {
+                    $.toast({
+                        text: "保存成功",
+                        showHideTransition: 'fade',
+                        icon: "success"
+                    });
+                } else if (json.code === 5) {
+                    // alert NO AUTH
+                    $.toast({
+                        heading: "无此权限",
+                        text: "只有团长权限可以保存排表，<a onclick='$(\"div#modal_authorize\").modal(\"show\");$(this).siblings(\".close-jq-toast-single\").click();'>重新登录</a>",
+                        showHideTransition: 'fade',
+                        hideAfter: false,
+                        icon: "warning"
+                    });
+                } else {
+                    $.toast({
+                        heading: "保存失败",
+                        text: json.msg,
+                        showHideTransition: 'fade',
+                        icon: "error"
+                    });
+                }
             }
         });
     } else {
         // alert NO AUTH
         $.toast({
             heading: "无此权限",
-            text: "只有团长权限可以保存排表",
+            text: "体验账号所做修改仅限于页面，不会提交到服务器，<a onclick='$(\"div#modal_authorize\").modal(\"show\");$(this).siblings(\".close-jq-toast-single\").click();'>重新登录</a>",
             showHideTransition: 'fade',
-            icon: "error"
+            hideAfter: false,
+            icon: "warning"
         });
     }
+}
+
+/**
+ * extract the whole schedule
+ * @returns {string} nested array of the schedule
+ */
+function extractSchedule() {
+    var $schedule = $("div#schedule");
+    var scheduleArray = [];
+    $schedule.find("table").each(function () {
+        var $table = $(this);
+        // each table is one period
+        var periodArray = [];
+        $table.find("tbody tr").each(function () {
+            var $tr = $(this);
+            // each tr is one team
+            var staffArray = [];
+            $tr.find("td").each(function () {
+                var $td = $(this);
+                // each td is one staff
+                var id = $td.attr("data-id");
+                staffArray.push(id && id > 1 ? id : 0);
+            });
+            periodArray.push("[" + staffArray.toString() + "]");
+        });
+        scheduleArray.push("[" + periodArray.toString() + "]");
+    });
+    return "[" + scheduleArray.toString().toString() + "]";
 }
 
 /**
@@ -633,7 +990,6 @@ function bindDrawLine() {
     var $svg = $('svg');
     // button
     var staffId = void 0;
-    var index = void 0;
     // table
     var $td = void 0;
     // pick staff
@@ -643,7 +999,6 @@ function bindDrawLine() {
         isDraw = true;
         // read staff id
         staffId = parseInt($(e.target).attr('data-id'));
-        index = parseInt($(e.target).index());
         // draw a line
         $svg.children('line').attr({ x1: e.pageX, y1: e.pageY, x2: e.pageX, y2: e.pageY });
     });
@@ -684,13 +1039,17 @@ function bindDrawLine() {
         if (isDrop) {
             if (isExchange) {
                 // exchange
+                var staff_id = $td.attr("data-id");
                 var staff_name = $td.attr("data-name");
                 var staff_text = $td.text();
                 var $target = $(this);
+                var this_id = $target.attr("data-id");
                 var this_name = $target.attr("data-name");
                 var this_text = $target.text();
+                $td.attr("data-id", !this_id ? "" : this_id);
                 $td.attr("data-name", !this_name ? "" : this_name);
                 $td.text(!this_text ? "" : this_text);
+                $target.attr("data-id", !staff_id ? "" : staff_id);
                 $target.attr("data-name", !staff_name ? "" : staff_name);
                 $target.text(!staff_text ? "" : staff_text);
                 // reset
@@ -700,25 +1059,21 @@ function bindDrawLine() {
                 markDuplicate(false, $target);
                 return;
             }
-            var staff = staticLocalJson.staff_list[index];
-            if (staff.id === staffId) {
-                var staff_out_text = $(this).text();
+            var staff = staticLocalStaffList[staffId - 1];
+            if (parseInt(staff.id) === staffId) {
+                var id_replaced = parseInt($(this).attr("data-id"));
                 var $staff_list = $("div#staff_list");
                 // remove duplication
                 if (staff.name !== "空") {
-                    var text = staff.name + staff.career;
-                    var $contain = $("div#schedule").find("tbody tr td").filter(":contains(" + text + ")");
+                    var $contain = $("div#schedule").find("tbody tr td").filter('[data-id="' + staffId + '"]');
                     $contain.each(function () {
-                        if ($(this).text() === text) {
-                            $(this).removeAttr("data-name").text("");
-                            markDuplicate(false, $(this));
-                        }
+                        $(this).removeAttr("data-id").removeAttr("data-name").text("");
                     });
                 }
                 // fill in the cell
-                $(this).attr('data-name', staff.name).text(staff.name + staff.career);
+                $(this).attr('data-id', staffId).attr('data-name', staff.name).text(staff.name + staff.career);
                 // set staff to '.in-schedule'
-                var $staff_in = $staff_list.find('button[data-id=' + staffId + ']');
+                var $staff_in = $staff_list.find('button[data-id="' + staffId + '"]');
                 if (!$staff_in.hasClass('in-schedule') && staff.name !== "空") {
                     $staff_in.addClass('in-schedule');
                     // hide
@@ -727,12 +1082,10 @@ function bindDrawLine() {
                     }
                 }
                 // consider REPLACE
-                if (staff_out_text !== "" && staff_out_text !== "空") {
-                    var _$contain = $staff_list.find("button:contains(" + staff_out_text + ")");
+                if (id_replaced > 1) {
+                    var _$contain = $staff_list.find('button[data-id="' + id_replaced + '"]');
                     _$contain.each(function () {
-                        if ($(this).text() === staff_out_text) {
-                            $(this).removeClass("in-schedule").show();
-                        }
+                        $(this).removeClass("in-schedule").show();
                     });
                 }
             } else {

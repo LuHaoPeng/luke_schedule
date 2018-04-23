@@ -19,8 +19,10 @@
         <div class="page-header">
             <h2>卢克排表工具
                 <span class="pull-right">
-                    <button title="保存排表" type="button" class="btn btn-info btn-sm" id="schedule_save_btn"
-                            onclick="saveSchedule();">
+                    <button type="button" class="btn btn-info btn-sm" id="schedule_history_btn">
+                        <span class="glyphicon glyphicon-time"></span>
+                    </button>
+                    <button title="保存排表" type="button" class="btn btn-info btn-sm" onclick="saveSchedule();">
                         <span class="glyphicon glyphicon-floppy-save"></span>
                     </button>
                     <button title="导出截图" type="button" class="btn btn-info btn-sm" id="export_btn">
@@ -77,6 +79,9 @@
             <h3>团员列表
                 <div class="pull-right">
                     <input title="在团员区查找对象" type="search" id="staff_search" autocomplete="off">
+                    <button title="刷新团员列表" type="button" class="btn btn-refresh btn-sm" onclick="requestStaff(null);"><span
+                            class="glyphicon glyphicon-refresh"></span>
+                    </button>
                     <button title="按住拖拽团员区" type="button" class="btn btn-info btn-sm"
                             id="staff_list_move_handle"><span
                             class="glyphicon glyphicon-move"></span>

@@ -28,6 +28,30 @@ table {
     border-radius: 3px;
 }
 
+.btn-refresh {
+    background-color: #95d195;
+    border-color: #8bca8b;
+    color: #fff;
+}
+
+.btn-refresh:focus {
+    color: #fff;
+    background-color: #5cb85c;
+    border-color: #255625;
+}
+
+.btn-refresh:hover {
+    color: #fff;
+    background-color: #5cb85c;
+    border-color: #398439;
+}
+
+.btn-refresh:active {
+    color: #fff;
+    background-color: #5cb85c;
+    border-color: #398439;
+}
+
 .container > .row > div:nth-child(n+2) {
     border: #3c3c3c solid 2px;
 }
@@ -142,7 +166,15 @@ button#staff_list_move_handle {
 }
 
 /*bootstrap扩展*/
-.popover {
-    background-color: #fcf8e3;
-    color: #a94442;
+/*.popover {*/
+/*background-color: #fcf8e3;*/
+/*color: #a94442;*/
+/*}*/
+
+.popover-content ul {
+    padding-left: 20px;
+}
+
+a.schedule-history {
+    cursor: pointer;
 }
