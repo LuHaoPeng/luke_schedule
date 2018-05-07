@@ -725,7 +725,7 @@ function saveStaff() {
                 let json = JSON.parse(data);
                 if (json.code === 0) {
                     // reload staff list
-                    requestStaff(null);
+                    requestStaff(loadCheck);
                     $.toast({
                         text: "保存成功",
                         showHideTransition: 'fade',
@@ -812,7 +812,7 @@ function deleteStaff() {
                 let json = JSON.parse(data);
                 if (json.code === 0) {
                     // reload staff list
-                    requestStaff(null);
+                    requestStaff(loadCheck);
                     $.toast({
                         heading: "删除成功",
                         text: "已删除<b>" + textDeleted + "</b>，<a onclick=\"undoDeleteStaff(" + id + ");$(this).siblings(\".close-jq-toast-single\").click();\">撤销删除</a>",
@@ -874,7 +874,7 @@ function undoDeleteStaff(idDeleted) {
             let json = JSON.parse(data);
             if (json.code === 0) {
                 // reload staff list
-                requestStaff(null);
+                requestStaff(loadCheck);
                 $.toast({
                     text: "已恢复",
                     showHideTransition: 'fade',
