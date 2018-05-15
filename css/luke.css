@@ -158,18 +158,19 @@ button#staff_list_move_handle {
 
 /*footer*/
 .foot-wrap {
-    position: fixed;
-    bottom: 0;
-    width: 100%;
+    padding-top: 2px;
+    padding-bottom: 2px;
+    margin-top: 100px;
+    color: #99979c;
+    text-align: center;
     background-color: #373f48;
-    z-index: 50;
 }
 
-/*bootstrap扩展*/
-/*.popover {*/
-/*background-color: #fcf8e3;*/
-/*color: #a94442;*/
-/*}*/
+a[disabled] {
+    opacity: 0.5;
+    cursor: default;
+    pointer-events: none
+}
 
 .popover-content ul {
     padding-left: 20px;
