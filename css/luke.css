@@ -107,7 +107,7 @@ input[type=search] {
 
 input[type=search]:focus {
     border-bottom: #aaa 1px solid;
-    width: 120px;
+    width: 80px;
     padding-left: 30px;
     color: #666;
     background-color: #fff;
@@ -164,6 +164,15 @@ button#staff_list_move_handle {
     color: #99979c;
     text-align: center;
     background-color: #373f48;
+}
+
+/*controls*/
+
+input.batch_leave {
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    vertical-align: middle;
 }
 
 a[disabled] {

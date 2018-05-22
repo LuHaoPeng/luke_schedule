@@ -60,6 +60,68 @@ if ($_POST['method'] == "save") {
             $return["msg"] = "更新用户失败";
         }
     }
+} elseif ($_POST['method'] == "batch_leave") {
+    // 检查权限
+    $auth = $_POST['auth'];
+    $auth = md5($auth);
+    $result = $link->query("SELECT type FROM luke_auth WHERE code = '$auth'");
+    if ($result->num_rows <= 0) {
+        $return['code'] = 2;
+        $return['msg'] = "授权码有误";
+        die(json_encode($return));
+    } else {
+        $row = $result->fetch_array();
+        if ($row['type'] < 1) {
+            $return['code'] = 5;
+            $return['msg'] = "权限不足";
+            die(json_encode($return));
+        }
+    }
+
+    $idList = $_POST['idList'];
+    if (empty($idList)) {
+        $return["code"] = 2;
+        $return["msg"] = "未选中团员";
+        die(json_encode($return));
+    }
+
+    $idList_string = join(',', $idList);
+    $result = $link->query("UPDATE luke_staff SET absence = 1 WHERE id IN ($idList_string)");
+    if ($result <= 0) {
+        $return["code"] = 2;
+        $return["msg"] = "请假失败";
+    }
+} elseif ($_POST['method'] == "batch_return") {
+    // 检查权限
+    $auth = $_POST['auth'];
+    $auth = md5($auth);
+    $result = $link->query("SELECT type FROM luke_auth WHERE code = '$auth'");
+    if ($result->num_rows <= 0) {
+        $return['code'] = 2;
+        $return['msg'] = "授权码有误";
+        die(json_encode($return));
+    } else {
+        $row = $result->fetch_array();
+        if ($row['type'] < 1) {
+            $return['code'] = 5;
+            $return['msg'] = "权限不足";
+            die(json_encode($return));
+        }
+    }
+
+    $idList = $_POST['idList'];
+    if (empty($idList)) {
+        $return["code"] = 2;
+        $return["msg"] = "未选中团员";
+        die(json_encode($return));
+    }
+
+    $idList_string = join(',', $idList);
+    $result = $link->query("UPDATE luke_staff SET absence = 0 WHERE id IN ($idList_string)");
+    if ($result <= 0) {
+        $return["code"] = 2;
+        $return["msg"] = "销假失败";
+    }
 } elseif ($_POST['method'] == "load") {
     $id = $_POST['id'];
     $result = $link->query("SELECT * FROM luke_staff WHERE id = $id AND deleted = 0");

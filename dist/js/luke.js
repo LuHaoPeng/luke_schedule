@@ -72,13 +72,11 @@ function requestStaff(callback) {
                 // load staff
                 loadStaffList(json.data.staff_in_order);
                 // toast when not on load
-                if (callback == null) {
-                    $.toast({
-                        text: "已获取最新团员列表",
-                        showHideTransition: 'fade',
-                        icon: "info"
-                    });
-                }
+                $.toast({
+                    text: "已获取最新团员列表",
+                    showHideTransition: 'fade',
+                    icon: "info"
+                });
             } else {
                 // alert error
                 $.toast({
@@ -302,6 +300,13 @@ function initPopovers() {
         placement: "bottom",
         trigger: "focus"
     });
+
+    $("button#staff_list_batch_leave").popover({
+        content: "对已选择团员进行：" + "<div style='display: flex;justify-content: space-between;margin:0.25rem auto;'>" + "<button class='btn btn-info' onclick='batchLeave(\"leave\");'>请假</button>" + "<button class='btn btn-info' onclick='batchLeave(\"return\");'>销假</button></div>",
+        html: true,
+        placement: 'top',
+        trigger: 'click'
+    });
 }
 
 /**
@@ -409,6 +414,23 @@ function bindEvents() {
     $(".page-header").on("click", "a.schedule-history", function () {
         var id = $(this).attr("data-id");
         requestSchedule(id, null);
+    });
+
+    // batch leave & return
+    $("button#staff_list_batch_leave").on('click', function () {
+        if ($(this).attr("data-clicked") === "0") {
+            $("div#staff_list").children('div').children('button').append(" <input class='batch_leave' type='checkbox'>");
+            // stop propagation of checkboxes
+            $("input.batch_leave").on("click", function (e) {
+                e.stopPropagation();
+            });
+            $(this).text("退出管理");
+            $(this).attr("data-clicked", "1");
+        } else {
+            $("input.batch_leave").remove();
+            $(this).text("批量管理");
+            $(this).attr("data-clicked", "0");
+        }
     });
 }
 
@@ -643,6 +665,75 @@ function addName() {
     $("select#staff_attr_name_select").val(staticNameList.length - 1);
     $modal.modal('hide');
     $input.val('');
+}
+
+/**
+ * set absence in batch
+ * @param type "leave" leave; "return" return
+ */
+function batchLeave(type) {
+    var idList = [];
+    var $checkList = $("input.batch_leave:checked").parent();
+    $checkList.each(function () {
+        idList.push($(this).attr("data-id"));
+    });
+    var method = null;
+    if (type === "leave") {
+        method = "batch_leave";
+    } else {
+        method = "batch_return";
+    }
+
+    if (sessionStorage.authorized === "true") {
+        $.post("php/StaffAttr.php", {
+            auth: sessionStorage.auth,
+            method: method,
+            idList: idList
+        }, function (data, status) {
+            if (status === "success") {
+                // success message
+                var json = JSON.parse(data);
+                if (json.code === 0) {
+                    // reload staff list
+                    requestStaff(loadCheck);
+                    $.toast({
+                        text: "批量" + (type === "leave" ? "请假" : "销假") + "成功",
+                        showHideTransition: 'fade',
+                        icon: "success"
+                    });
+                } else if (json.code === 5) {
+                    // alert NO AUTH
+                    $.toast({
+                        heading: "权限不足",
+                        text: "需要团员以上权限才可操作，<a onclick='$(\"div#modal_authorize\").modal(\"show\");$(this).siblings(\".close-jq-toast-single\").click();'>重新登录</a>",
+                        showHideTransition: 'fade',
+                        hideAfter: false,
+                        icon: "warning"
+                    });
+                } else {
+                    $.toast({
+                        heading: "批量" + (type === "leave" ? "请假" : "销假") + "失败",
+                        text: json.msg,
+                        showHideTransition: 'fade',
+                        icon: "error"
+                    });
+                }
+            }
+        });
+    } else {
+        $checkList.filter(":not(.career-absence)").addClass("career-absence");
+
+        // alert NO AUTH
+        $.toast({
+            heading: "无此权限",
+            text: "体验账号所做修改仅限于页面，不会提交到服务器，<a onclick='$(\"div#modal_authorize\").modal(\"show\");$(this).siblings(\".close-jq-toast-single\").click();'>重新登录</a>",
+            showHideTransition: 'fade',
+            hideAfter: false,
+            icon: "warning"
+        });
+    }
+
+    $("button#staff_list_batch_leave").popover('hide').click();
 }
 
 /**
