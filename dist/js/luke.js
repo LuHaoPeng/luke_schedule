@@ -229,7 +229,7 @@ function constructChart(time, arrayParam) {
                 periodArray.forEach(function (teamArray, indexTeam) {
                     if (teamArray instanceof Array) {
                         // teamArray是一个队，对应tr
-                        tableHtml += '<tr><th scope="row">' + String.fromCharCode(65 + indexTeam) + '</th>';
+                        tableHtml += '<tr><th scope="row">' + String.fromCharCode(65 + indexTeam) + '队' + '</th>';
                         teamArray.forEach(function (staffId) {
                             staffId = parseInt(staffId);
                             if (staffId === 0) {
