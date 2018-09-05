@@ -43,7 +43,8 @@ while ($row = $result->fetch_array()) {
         "absence" => $row['absence'],
         "attack" => $row['attack'],
         "control" => $row['control'],
-        "element" => $row['element']
+        "element" => $row['element'],
+        "deleted" => $row['deleted']
     ));
 }
 

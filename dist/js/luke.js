@@ -3,7 +3,9 @@
 var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
 
 var staticLocalStaffList = null;
-var timeTable = ['20:00', '20:30', '21:00', '21:30', '22:00', '22:30', '23:00', '23:30', '0:00', '0:30'];
+var firstBattleTime = new Date();
+firstBattleTime.setHours(20, 0, 0);
+var battleInterval = 30;
 var staticNameList = [];
 var scheduleHistoryHtml = "";
 
@@ -17,29 +19,32 @@ $(document).ready(function () {
         bindDrawLine();
 
         // show modal authorize
-        if (typeof sessionStorage.authorized === "undefined") {
+        if (typeof sessionStorage.authorized === "undefined" && !/Android|webOS|iPhone|iPod|BlackBerry/i.test(navigator.userAgent)) {
             $("div#modal_authorize").modal('show');
         }
     });
 
     // init switch
-    $("input#edit_lock").bootstrapSwitch({
-        'state': false,
-        'size': 'small',
-        'onText': '\u2714',
-        'offText': '\u2718',
-        'onSwitchChange': function onSwitchChange() {
-            var state = $("input#edit_lock").bootstrapSwitch('state');
-            var $chart = $('div#schedule');
-            if (state === true) {
-                $chart.find('table thead th').children('span').show();
-                $chart.children('div').show();
-            } else if (state === false) {
-                $chart.find('table thead th').children('span').hide();
-                $chart.children('div').hide();
+    if (!/Android|webOS|iPhone|iPod|BlackBerry/i.test(navigator.userAgent)) {
+        $("input#edit_lock").bootstrapSwitch({
+            'state': false,
+            'size': 'small',
+            'labelText': '表',
+            'onText': "\u2714",
+            'offText': "\u2718",
+            'onSwitchChange': function onSwitchChange() {
+                var state = $("input#edit_lock").bootstrapSwitch('state');
+                var $chart = $('div#schedule');
+                if (state === true) {
+                    $chart.find('table thead th').children('span').show();
+                    $chart.children('div').show();
+                } else if (state === false) {
+                    $chart.find('table thead th').children('span').hide();
+                    $chart.children('div').hide();
+                }
             }
-        }
-    });
+        });
+    }
 
     // make draggable
     makeDraggable($('div#staff_list'), $("button#staff_list_move_handle"));
@@ -52,10 +57,51 @@ $(document).ready(function () {
 function init(callback) {
     $("div#schedule").children('h3').text(new Date().toLocaleDateString().replace(/\//g, '-'));
     // load from server
+    requestSetting();
     requestStaff(function () {
         requestSchedule(null, callback);
     });
     requestScheduleList();
+}
+
+/**
+ * request system setting - interval
+ */
+function requestSetting() {
+    $.post("php/SysSetting.php", {
+        rule: 'luke_interval'
+    }, function (data, status) {
+        if (status === "success") {
+            var json = JSON.parse(data);
+            if (json.code === 0) {
+                // local setting
+                battleInterval = json.data || 30;
+                // toast when not on load
+                $.toast({
+                    text: "已获取最新设置",
+                    showHideTransition: 'fade',
+                    icon: "info"
+                });
+            } else {
+                // alert error
+                $.toast({
+                    heading: "error",
+                    text: json.msg,
+                    showHideTransition: 'fade',
+                    icon: "error"
+                });
+            }
+        } else {
+            // alert fail
+            $.toast({
+                heading: "获取设置失败",
+                text: "请稍后尝试刷新页面",
+                showHideTransition: 'fade',
+                icon: "error",
+                hideAfter: false
+            });
+        }
+    });
 }
 
 /**
@@ -225,7 +271,7 @@ function constructChart(time, arrayParam) {
         chartArray.forEach(function (periodArray, indexPeriod) {
             if (periodArray instanceof Array) {
                 // periodArray是一个时间段，对应table
-                tableHtml += '<table class="table table-bordered text-center"><thead><tr>\n' + ' <th class="bg-success">' + timeTable[indexPeriod] + '\n' + '     <span class="pull-right" style="display: none;">\n' + '         <button title="在该时间段末尾增加一个团" type="button" class="btn btn-info btn-xxs" name="row-add">\n' + '             <span class="glyphicon glyphicon-plus"></span>\n' + '         </button>\n' + '         <button title="将该时间段末尾的团删去" type="button" class="btn btn-info btn-xxs" name="row-delete">\n' + '             <span class="glyphicon glyphicon-minus"></span>\n' + '         </button>\n' + '     </span>\n' + ' </th>\n' + ' <th class="text-center" colspan="4">光</th>\n' + ' <th class="text-center" colspan="4">暗</th>\n' + ' </tr></thead><tbody>';
+                tableHtml += '<table class="table table-bordered text-center"><thead><tr>\n' + ' <th class="bg-success">' + firstBattleTime.add("m", battleInterval * indexPeriod).Format("hh:mm") + '\n' + '     <span class="pull-right" style="display: none;">\n' + '         <button title="在该时间段末尾增加一个团" type="button" class="btn btn-info btn-xxs" name="row-add">\n' + '             <span class="glyphicon glyphicon-plus"></span>\n' + '         </button>\n' + '         <button title="将该时间段末尾的团删去" type="button" class="btn btn-info btn-xxs" name="row-delete">\n' + '             <span class="glyphicon glyphicon-minus"></span>\n' + '         </button>\n' + '     </span>\n' + ' </th>\n' + ' <th class="text-center" colspan="4">光</th>\n' + ' <th class="text-center" colspan="4">暗</th>\n' + ' </tr></thead><tbody>';
                 periodArray.forEach(function (teamArray, indexTeam) {
                     if (teamArray instanceof Array) {
                         // teamArray是一个队，对应tr
@@ -323,7 +369,9 @@ function bindEvents() {
     $("div#staff_list_filter").find("input[name='options']").on('change', filterStaff);
 
     // search
-    $("input#staff_search").on('change keydown', function (e) {
+    $("input#staff_search").on('focus', function () {
+        $(this).select();
+    }).on('change keydown', function (e) {
         if (e.type === "keydown" && e.keyCode !== 13) return;
         var $list = $("div#staff_list").children("div").children("button");
         var key = $(this).val().trim();
@@ -333,7 +381,9 @@ function bindEvents() {
             $list.hide().filter(":contains(" + key + ")").show();
         }
     });
-    $schedule.on('change keydown', "input#schedule_search", function (e) {
+    $schedule.on('focus', "input#schedule_search", function () {
+        $(this).select();
+    }).on('change keydown', "input#schedule_search", function (e) {
         if (e.type === "keydown" && e.keyCode !== 13) return;
         var $cell = $("div#schedule").find("tbody tr td");
         var key = $(this).val().trim();
@@ -392,7 +442,7 @@ function bindEvents() {
     }).on('click', "[name='chart-add']", function () {
         var count = $("div#schedule").children("table").length;
         if (count >= 10) return; // max support 10 charts
-        $("<table class=\"table table-bordered text-center\">\n" + "<thead>\n" + "<tr>\n" + "    <th class=\"bg-success\">" + timeTable[count] + "\n" + "        <span class=\"pull-right\">\n" + "            <button title=\"在该时间段末尾增加一个团\"  type=\"button\" class=\"btn btn-info btn-xxs\" name=\"row-add\">\n" + "                <span class=\"glyphicon glyphicon-plus\"></span>\n" + "            </button>\n" + "            <button title=\"将该时间段末尾的团删去\" type=\"button\" class=\"btn btn-info btn-xxs\" name=\"row-delete\">\n" + "                <span class=\"glyphicon glyphicon-minus\"></span>\n" + "            </button>\n" + "        </span>\n" + "    </th>\n" + "    <th class=\"text-center\" colspan=\"4\">光</th>\n" + "    <th class=\"text-center\" colspan=\"4\">暗</th>\n" + "</tr>\n" + "</thead>\n" + "<tbody>\n" + "<tr>\n" + "    <th scope=\"row\">A队</th>\n" + "    <td></td>\n" + "    <td></td>\n" + "    <td></td>\n" + "    <td></td>\n" + "    <td></td>\n" + "    <td></td>\n" + "    <td></td>\n" + "    <td></td>\n" + "</tr>\n" + "</tbody>\n" + "</table>").insertBefore("div#schedule>div");
+        $("<table class=\"table table-bordered text-center\">\n" + "<thead>\n" + "<tr>\n" + "    <th class=\"bg-success\">" + firstBattleTime.add("m", battleInterval * count).Format("hh:mm") + "\n" + "        <span class=\"pull-right\">\n" + "            <button title=\"在该时间段末尾增加一个团\"  type=\"button\" class=\"btn btn-info btn-xxs\" name=\"row-add\">\n" + "                <span class=\"glyphicon glyphicon-plus\"></span>\n" + "            </button>\n" + "            <button title=\"将该时间段末尾的团删去\" type=\"button\" class=\"btn btn-info btn-xxs\" name=\"row-delete\">\n" + "                <span class=\"glyphicon glyphicon-minus\"></span>\n" + "            </button>\n" + "        </span>\n" + "    </th>\n" + "    <th class=\"text-center\" colspan=\"4\">光</th>\n" + "    <th class=\"text-center\" colspan=\"4\">暗</th>\n" + "</tr>\n" + "</thead>\n" + "<tbody>\n" + "<tr>\n" + "    <th scope=\"row\">A队</th>\n" + "    <td></td>\n" + "    <td></td>\n" + "    <td></td>\n" + "    <td></td>\n" + "    <td></td>\n" + "    <td></td>\n" + "    <td></td>\n" + "    <td></td>\n" + "</tr>\n" + "</tbody>\n" + "</table>").insertBefore("div#schedule>div");
         resizeSVG();
     }).on('click', "[name='chart-delete']", function () {
         var $table = $("div#schedule").children("table");
@@ -1020,7 +1070,8 @@ function extractSchedule() {
                 var $td = $(this);
                 // each td is one staff
                 var id = $td.attr("data-id");
-                staffArray.push(id && id > 1 ? id : 0);
+                var staff = staticLocalStaffList[id - 1];
+                staffArray.push(id && id > 1 && parseInt(staff.deleted) === 0 ? id : 0);
             });
             periodArray.push("[" + staffArray.toString() + "]");
         });

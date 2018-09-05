@@ -51,16 +51,16 @@
         <div class="page-header">
             <h2>卢克排表工具
                 <span class="pull-right">
-                    <button type="button" class="btn btn-info btn-sm" id="schedule_history_btn">
+                    <button type="button" class="btn btn-info btn-sm hidden-xs hidden-sm" id="schedule_history_btn">
                         <span class="glyphicon glyphicon-time"></span>
                     </button>
-                    <button title="保存排表" type="button" class="btn btn-info btn-sm" onclick="saveSchedule();">
+                    <button title="保存排表" type="button" class="btn btn-info btn-sm hidden-xs hidden-sm" onclick="saveSchedule();">
                         <span class="glyphicon glyphicon-floppy-save"></span>
                     </button>
-                    <button title="导出截图" type="button" class="btn btn-info btn-sm" id="export_btn">
+                    <button title="导出截图" type="button" class="btn btn-info btn-sm hidden-xs hidden-sm" id="export_btn">
                         <span class="glyphicon glyphicon-export"></span>
                     </button>
-                    <input type="checkbox" id="edit_lock" autocomplete="off">
+                    <input class="hidden-xs hidden-sm" type="checkbox" id="edit_lock" autocomplete="off">
                 </span>
             </h2>
         </div>
@@ -107,7 +107,7 @@
                 </button>
             </div>
         </div>
-        <div class="col-md-7 draggable" id="staff_list" style="margin-bottom: 100px;">
+        <div class="col-md-7 hidden-xs hidden-sm draggable" id="staff_list" style="margin-bottom: 100px;">
             <h3>团员列表
                 <div class="pull-right">
                     <input title="在团员区查找对象" type="search" id="staff_search" autocomplete="off">
@@ -147,7 +147,7 @@
             <!--button 列表-->
             <div></div>
         </div>
-        <div class="col-md-5" style="width: 37.3%;margin-left: 4.366667%;margin-bottom: 100px;" id="staff_attr_panel"
+        <div class="col-md-5 hidden-xs hidden-sm" style="width: 37.3%;margin-left: 4.366667%;margin-bottom: 100px;" id="staff_attr_panel"
              data-id="-1">
             <h3>团员属性
                 <div class="pull-right">
@@ -308,6 +308,7 @@
 <script src="js/bootstrap-switch.min.js"></script>
 <script src="js/html2canvas.min.js"></script>
 <script src="js/jquery.toast.min.js"></script>
+<script src="dist/js/common.min.js"></script>
 <script src="dist/js/luke.min.js"></script>
 </body>
 </html>
